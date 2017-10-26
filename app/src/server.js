@@ -2,6 +2,8 @@ import express from 'express'
 // import * as Game from './game.js'
 import {
     Point,
+    Rect,
+    Area,
     PlayerValues,
     Player,
     MonsterValues,
@@ -18,10 +20,10 @@ const app = express();
 // let item = new Item(new Point(5, 7), 0);
 
 // Const
-const MONSTER_BORN_PERIOD = 500;
-const MONSTER_AMOUNT_MAX = 40;
-const ITEM_APPEAR_PERIOD = 300;
-const ITEM_AMOUNT_MAX = 50;
+const MONSTER_BORN_PERIOD = 3000;
+const MONSTER_AMOUNT_MAX = 15;
+const ITEM_APPEAR_PERIOD = 1000;
+const ITEM_AMOUNT_MAX = 20;
 
 // Game Attributes
 let nowTime = Date.now();
@@ -32,8 +34,31 @@ let player = new Player(new Point(5, 5), new PlayerValues(999999, 999999, 99));
 let monsterList = [];
 /** @type {Array<Item>} */
 let itemList = [];
+/** @type {Array<Area>} */
+let areaList = [new Area([new Rect(0, 0, 5, 10)], []), new Area([new Rect(5, 0, 5, 10)], [])];
+
 let monsterTimer = Date.now();
 let itemTimer = Date.now();
+
+/**
+ * Check area cover
+ */
+// Area不重疊
+if (areaList.length > 1) {
+    for (let i = 0; i < areaList.length; i++) {
+        for (let j = i + 1; j < areaList.length; j++) {
+            for (let p1 of areaList[i].getAllPoints()) {
+                for (let p2 of areaList[j].getAllPoints()) {
+                    if (p1.same(p2)) throw new Error('Area Cover Error');
+                }
+            }
+        }
+    }
+}
+// 涵蓋整張地圖
+let total = 0;
+for (let area of areaList) total += area.getAllPoints().length;
+if (total != world.height * world.height) throw new Error('Area Cover Error');
 
 
 app.get('/', function (req, res) {
@@ -148,6 +173,31 @@ function availablePoint() {
     }
 }
 
+function usedPoints() {
+    let usedPoints = [];
+    usedPoints = usedPoints.concat(monsterList.map((m) => m.point));
+    usedPoints = usedPoints.concat(itemList.map((i) => i.point));
+    return usedPoints;
+}
+
+function filterPoints(points, removePoints) {
+    return points.filter((p1) => {
+        for (let p2 of removePoints) {
+            if (p1.same(p2)) return false;
+        }
+        return true;
+    })
+}
+
+function randomPoint(points) {
+    if (points.length > 0) {
+        let index = Math.floor(Math.random() * points.length)
+        return points[index];
+    } else {
+        return null;
+    }
+}
+
 
 // Game loop
 setInterval(() => {
@@ -159,16 +209,30 @@ setInterval(() => {
 
     // New Monster
     if (nowTime > monsterTimer) {
-        let p = availablePoint();
 
-        if (p) {
-            monsterTimer = nowTime + MONSTER_BORN_PERIOD;
-            let newMonster = new Monster(p, 0, new MonsterValues(200, 200, 15));
-            monsterList.push(newMonster);
-            console.log(`New Monster ${JSON.stringify(p)}`);
-        } else {
-            console.log('No Available Point');
+        for (let area of areaList) {
+
+            // check
+            let amount = monsterList.filter((m) => area.isPointInArea(m.point)).length;
+            if (amount >= MONSTER_AMOUNT_MAX) continue;
+
+            let points = area.getAllPoints();
+            points = filterPoints(points, usedPoints());
+
+            let p = randomPoint(points);
+
+            if (p) {
+                let newMonster = new Monster(p, 0, new MonsterValues(200, 200, 15));
+                monsterList.push(newMonster);
+                console.log(`New Monster ${JSON.stringify(p)}`);
+            } else {
+                console.log('No Available Point');
+            }
+
+            if (monsterList.length >= MONSTER_AMOUNT_MAX) break;
         }
+
+        monsterTimer = nowTime + MONSTER_BORN_PERIOD;
     }
 
     // New Item
@@ -188,6 +252,34 @@ setInterval(() => {
 
 setInterval(() => {
     console.log(`m:${monsterList.length} i:${itemList.length}`)
+    return;
+    let points = [];
+    for (let area of areaList)
+        points = points.concat(area.getAllPoints())
+
+    let maxX = 0;
+    let maxY = 0;
+    for (let p of points) {
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+    }
+
+    for (let y = 0; y <= maxY; y++) {
+        let txt = '';
+        for (let x = 0; x <= maxX; x++) {
+            let point = new Point(x, y);
+            if (points.find((p) => p.same(point))) {
+                if (monsterList.find((m) => m.point.same(point)))
+                    txt = txt + '怪';
+                else if (itemList.find((i) => i.point.same(point)))
+                    txt = txt + '東';
+                else
+                    txt = txt + '口';
+            } else
+                txt = txt + '　';
+        }
+        console.log(txt);
+    }
 }, 1000)
 
 // (async() => {

@@ -2,6 +2,11 @@
 
 export class Point {
 
+    /**
+     * 
+     * @param {Number} x 
+     * @param {Number} y 
+     */
     constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
@@ -44,6 +49,114 @@ export class Point {
         return this.x == other.x && this.y == other.y;
     }
 
+}
+
+export class Rect {
+
+    /**
+     * 
+     * @param {Number} x 
+     * @param {Number} y 
+     * @param {Number} width 
+     * @param {Number} height 
+     */
+    constructor(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        if (width < 1 || height < 1) throw new Error('Rect: Width or Height Error');
+    }
+
+    /**
+     * 
+     * @param {Point} point 
+     * @returns {Boolean} 
+     */
+    isPointInRect(point) {
+        return point.x >= this.x && point.y >= this.y && point.x < this.x + this.width && point.y < this.y + this.height;
+    }
+
+    /**
+     * @returns {Array<Point>}
+     */
+    getAllPoints() {
+        let points = [];
+        for (let x = this.x; x < this.x + this.width; x++) {
+            for (let y = this.y; y < this.y + this.height; y++) {
+                points.push(new Point(x, y));
+            }
+        }
+        return points;
+    }
+}
+
+export class Area {
+
+    /**
+     * 
+     * @param {Array<Rect>} includeRectList 
+     * @param {Array<Rect>} excludeRectList
+     */
+    constructor(includeRectList, excludeRectList) {
+        this.includeRectList = includeRectList;
+        this.excludeRectList = excludeRectList;
+        // 檢查合理性
+    }
+
+    /**
+     * 
+     * @param {Point} point 
+     * @returns {Boolean} 
+     */
+    isPointInArea(point) {
+        let exc = this.excludeRectList.filter((rect) => rect.isPointInRect(point))
+        if (exc.length > 0) return false;
+        let inc = this.includeRectList.filter((rect) => rect.isPointInRect(point))
+        if (inc.length > 0) return true;
+    }
+
+    /**
+     * @returns {Array<Point>}
+     */
+    getAllPoints() {
+        /** @type {Array<Point>} */
+        let points = [];
+        
+        // Add include rect
+        for (let rect of this.includeRectList) {
+            points = points.concat(rect.getAllPoints());
+        }
+
+        // Filte exclude rect
+        points = points.filter((p) => {
+            for (let exRect of this.excludeRectList) {
+                if (exRect.isPointInRect(p)) return false;
+            }
+            return true;
+        })
+
+        // Filte repeat
+        let i1 = 0;
+        while (i1 < points.length) {
+            let p1 = points[i1];
+            points = points.filter((p2, i2) => {
+                if (i1 == i2) return true;
+                if (p1.same(p2)) return false;
+                return true;
+            })
+            i1++;
+        }
+
+        // Return
+        return points;
+        // if (availablePoints.length > 0) {
+        //     return availablePoints;
+        //     // return availablePoints[Math.floor(Math.random() * availablePoints.length)];
+        // } else {
+        //     return null;
+        // }
+    }
 }
 
 export class RangeValue {
