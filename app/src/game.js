@@ -32,6 +32,14 @@ export class Point {
         return Math.abs(this.x - other.x) + Math.abs(this.y - other.y, );
     }
 
+    /**
+     * 
+     * @param {Point} other 
+     */
+    same(other) {
+        return this.x == other.x && this.y == other.y;
+    }
+
 }
 
 export class RangeValue {
