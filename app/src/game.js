@@ -1,7 +1,6 @@
 // import fs from 'fs'
 
-
-class Point {
+export class Point {
 
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -35,7 +34,7 @@ class Point {
 
 }
 
-class RangeValue {
+export class RangeValue {
 
     /**
      * 
@@ -50,7 +49,7 @@ class RangeValue {
     }
 }
 
-class PlayerValues {
+export class PlayerValues {
 
     /**
      * 
@@ -62,10 +61,18 @@ class PlayerValues {
         this.maxLife = maxLife;
         this.nowLife = nowLife;
         this.atk = atk;
+
+        this.actionTimer = 0;
+        this.moveDelay = 1000;
+        this.searchDelay = 1500;
+        this.collectDelay = 1500;
+        this.atkDelay = 1500;
+
+        this.watchDistance = 2.0;
     }
 }
 
-class Player {
+export class Player {
 
     /**
      * 
@@ -78,7 +85,7 @@ class Player {
     }
 }
 
-class MonsterValues {
+export class MonsterValues {
 
     /**
      * 
@@ -93,20 +100,35 @@ class MonsterValues {
     }
 }
 
-class Monster {
+export class Monster {
 
     /**
      * 
      * @param {Point} point 
+     * @param {Number} id
      * @param {MonsterValues} values
      */
-    constructor(point, values) {
+    constructor(point, id, values) {
         this.point = point;
+        this.id = id;
         this.values = values;
     }
 }
 
-class World {
+export class Item {
+
+    /**
+     * 
+     * @param {Point} point 
+     * @param {Number} id
+     */
+    constructor(point, id) {
+        this.point = point;
+        this.id = id;
+    }
+}
+
+export class World {
 
     /**
      * 
@@ -128,33 +150,7 @@ class World {
 }
 
 
-
-let world = new World(57, 32);
-let player = new Player(new Point(55, 8), new MonsterValues(100, 100, 35));
-console.log(player)
-
-// Move
-let temp = player.point.move(1, -1);
-if (world.isPointInWorld(temp)) player.point = temp;
-console.log(player)
-
-
-// Distance
-let p1 = new Point(10, 10);
-let p2 = new Point(20, 20);
-console.log(p1.lineDistance(p2))
-console.log(p1.latticeDistance(p2))
-
-let monster = new Monster(new Point(56, 7), new PlayerValues(200, 200, 15));
-console.log(monster);
-
-// Atk
-if (player.point.latticeDistance(monster.point) == 0) {
-    console.log('atk!!!!!!!!!!!!!!!!!!!');
-    for (let i = 0; i < 3; i++) {
-        player.values.nowLife -= monster.values.atk;
-        monster.values.nowLife -= player.values.atk;
-    }
-    console.log(player);
-    console.log(monster);
+export class GameConfig {
+    static WORLD_WIDTH = 57;
+    static WORLD_HEIGHT = 32;
 }
