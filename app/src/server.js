@@ -14,22 +14,23 @@ import {
 
 const app = express();
 
+// let monster = new Monster(new Point(5, 6), 0, new MonsterValues(200, 200, 15));
+// let item = new Item(new Point(5, 7), 0);
+
+// Const
+const MONSTER_BORN_PERIOD = 500;
+const MONSTER_AMOUNT_MAX = 40;
+const ITEM_APPEAR_PERIOD = 300;
+const ITEM_AMOUNT_MAX = 50;
+
+// Game Attributes
 let nowTime = Date.now();
 // let world = new World(GameConfig.WORLD_WIDTH, GameConfig.WORLD_HEIGHT);
 let world = new World(10, 10);
-let player = new Player(new Point(5, 5), new PlayerValues(200, 100, 35));
-let monster = new Monster(new Point(5, 6), 0, new MonsterValues(200, 200, 15));
-let item = new Item(new Point(5, 7), 0);
-
-
-// Const
-const MONSTER_BORN_PERIOD = 5000;
-const MONSTER_AMOUNT_MAX = 20;
-const ITEM_APPEAR_PERIOD = 3000;
-const ITEM_AMOUNT_MAX = 30;
-
-// Game Attributes
+let player = new Player(new Point(5, 5), new PlayerValues(999999, 999999, 99));
+/** @type {Array<Monster>} */
 let monsterList = [];
+/** @type {Array<Item>} */
 let itemList = [];
 let monsterTimer = Date.now();
 let itemTimer = Date.now();
@@ -53,39 +54,64 @@ app.get('/move', function (req, res) {
     res.send(txt);
 });
 
-app.get('/atk', function (req, res) {
-    if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
-    if (player.point.latticeDistance(monster.point) != 0) return res.send(`Distance Too Far`);
-    if (monster.values.nowLife <= 0) return res.send(`Monster Already Died`);
-
-    let playerNewLife = player.values.nowLife - monster.values.atk;
-    let monsterNewLife = monster.values.nowLife - player.values.atk;
-
-    if (playerNewLife <= 0) return res.send(`Player Life Not Enough`);
-    player.values.nowLife = playerNewLife;
-    player.values.actionTimer = nowTime + player.values.atkDelay;
-
-    if (monsterNewLife <= 0) monsterNewLife = 0;
-    monster.values.nowLife = monsterNewLife;
-
-    let txt = `Player Atk... Player:${player.values.nowLife} Monster:${monster.values.nowLife}`
-    console.log(txt);
-    res.send(txt);
-})
-
 app.get('/search', function (req, res) {
     if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
     player.values.actionTimer = nowTime + player.values.searchDelay;
-    let distance = player.point.lineDistance(item.point);
-    if (distance < player.values.watchDistance) return res.send(`Item Point(${JSON.stringify(item.point)})`);
-    else return res.send(`Not Found`);
+
+    // Search Monster, Item
+    let veiwableMonsters = monsterList.filter((m) => player.point.lineDistance(m.point) < player.values.searchDistance);
+    let veiwableItems = itemList.filter((item) => player.point.lineDistance(item.point) < player.values.searchDistance);
+
+    if (veiwableMonsters.length == 0 && veiwableItems.length == 0) {
+        return res.send(`Not Found`);
+    } else {
+        let txt = '';
+        for (let m of veiwableMonsters) txt = txt + `Monster ${JSON.stringify(m.point)}</br>`;
+        for (let i of veiwableItems) txt = txt + `Item ${JSON.stringify(i.point)}</br>`;
+        return res.send(txt);
+    }
+})
+
+app.get('/atk', function (req, res) {
+    if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
+
+    let hereMonster = monsterList.find((m) => player.point.same(m.point));
+
+    if (hereMonster) {
+        if (hereMonster.values.nowLife <= 0) return res.send(`Monster Already Died`); // 不可能被執行到
+
+        let playerNewLife = player.values.nowLife - hereMonster.values.atk;
+        let monsterNewLife = hereMonster.values.nowLife - player.values.atk;
+        if (playerNewLife <= 0) return res.send(`Player Life Not Enough`);
+
+        player.values.actionTimer = nowTime + player.values.collectDelay;
+        player.values.nowLife = playerNewLife;
+
+        if (monsterNewLife <= 0) {
+            monsterList.splice(monsterList.indexOf(hereMonster), 1);
+            return res.send(`Kill Monster Successs ${JSON.stringify(player.point)}}`);
+        } else {
+            hereMonster.values.nowLife = monsterNewLife;
+            return res.send(`Atk Monster Successs. Player:${player.values.nowLife} Monster:${hereMonster.values.nowLife}`);
+        }
+
+    } else {
+        return res.send(`No Monster Here ${JSON.stringify(player.point)}}`);
+    }
 })
 
 app.get('/collect', function (req, res) {
     if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
-    if (player.point.latticeDistance(item.point) != 0) return res.send(`Distance Too Far`);
-    player.values.actionTimer = nowTime + player.values.collectDelay;
-    return res.send(`Collect Successs`);
+
+    let hereItem = itemList.find((item) => player.point.same(item.point));
+
+    if (hereItem) {
+        player.values.actionTimer = nowTime + player.values.collectDelay;
+        itemList.splice(itemList.indexOf(hereItem), 1);
+        return res.send(`Collect Successs ${JSON.stringify(player.point)}}`);
+    } else {
+        return res.send(`No Item Here ${JSON.stringify(player.point)}}`);
+    }
 })
 
 app.listen(3000, function () {
@@ -139,7 +165,7 @@ setInterval(() => {
             monsterTimer = nowTime + MONSTER_BORN_PERIOD;
             let newMonster = new Monster(p, 0, new MonsterValues(200, 200, 15));
             monsterList.push(newMonster);
-            console.log('New Monster');
+            console.log(`New Monster ${JSON.stringify(p)}`);
         } else {
             console.log('No Available Point');
         }
@@ -152,7 +178,7 @@ setInterval(() => {
             itemTimer = nowTime + ITEM_APPEAR_PERIOD;
             let newItem = new Item(p, 0);
             itemList.push(newItem);
-            console.log('New Item');
+            console.log(`New Item ${JSON.stringify(p)}`);
         } else {
             console.log('No Available Point');
         }

@@ -11,6 +11,7 @@ export class Point {
      * 
      * @param {Number} xDis 
      * @param {Number} yDis 
+     * @returns {Point} 
      */
     move(xDis, yDis) {
         return new Point(this.x + xDis, this.y + yDis);
@@ -19,6 +20,7 @@ export class Point {
     /**
      * 
      * @param {Point} other 
+     * @returns {Number} 
      */
     lineDistance(other) {
         return Math.sqrt(Math.pow(this.x - other.x, 2) + Math.pow(this.y - other.y, 2));
@@ -27,14 +29,16 @@ export class Point {
     /**
      * 
      * @param {Point} other 
+     * @returns {Number} 
      */
     latticeDistance(other) {
-        return Math.abs(this.x - other.x) + Math.abs(this.y - other.y, );
+        return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
     }
 
     /**
      * 
      * @param {Point} other 
+     * @returns {Boolean} 
      */
     same(other) {
         return this.x == other.x && this.y == other.y;
@@ -71,12 +75,12 @@ export class PlayerValues {
         this.atk = atk;
 
         this.actionTimer = 0;
-        this.moveDelay = 1000;
-        this.searchDelay = 1500;
-        this.collectDelay = 1500;
-        this.atkDelay = 1500;
+        this.moveDelay = 1; //1000
+        this.searchDelay = 1; //1500
+        this.collectDelay = 1; //1500
+        this.atkDelay = 1; //1500
 
-        this.watchDistance = 2.0;
+        this.searchDistance = 2.0;
     }
 }
 
@@ -151,6 +155,7 @@ export class World {
     /**
      * 
      * @param {Point} point 
+     * @returns {Boolean} 
      */
     isPointInWorld(point) {
         return point.x >= 0 && point.y >= 0 && point.x < this.width && point.y < this.height;
