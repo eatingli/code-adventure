@@ -10,20 +10,20 @@ import {
     Monster,
     World,
     GameConfig,
-    Item,
+    Resource,
 } from './game.js'
 
 
 const app = express();
 
 // let monster = new Monster(new Point(5, 6), 0, new MonsterValues(200, 200, 15));
-// let item = new Item(new Point(5, 7), 0);
+// let Resource = new Resource(new Point(5, 7), 0);
 
 // Const
 const MONSTER_BORN_PERIOD = 3000;
 const MONSTER_AMOUNT_MAX = 15;
-const ITEM_APPEAR_PERIOD = 1000;
-const ITEM_AMOUNT_MAX = 20;
+const RESOURCE_APPEAR_PERIOD = 1000;
+const RESOURCE_AMOUNT_MAX = 20;
 
 // Game Attributes
 let nowTime = Date.now();
@@ -32,13 +32,13 @@ let world = new World(10, 10);
 let player = new Player(new Point(5, 5), new PlayerValues(999999, 999999, 99));
 /** @type {Array<Monster>} */
 let monsterList = [];
-/** @type {Array<Item>} */
-let itemList = [];
+/** @type {Array<Resource>} */
+let resourceList = [];
 /** @type {Array<Area>} */
 let areaList = [new Area([new Rect(0, 0, 5, 10)], []), new Area([new Rect(5, 0, 5, 10)], [])];
 
 let monsterTimer = Date.now();
-let itemTimer = Date.now();
+let resourceTimer = Date.now();
 
 /**
  * Check area cover
@@ -83,16 +83,16 @@ app.get('/search', function (req, res) {
     if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
     player.values.actionTimer = nowTime + player.values.searchDelay;
 
-    // Search Monster, Item
+    // Search Monster, Resource
     let veiwableMonsters = monsterList.filter((m) => player.point.lineDistance(m.point) < player.values.searchDistance);
-    let veiwableItems = itemList.filter((item) => player.point.lineDistance(item.point) < player.values.searchDistance);
+    let veiwableResources = resourceList.filter((resource) => player.point.lineDistance(resource.point) < player.values.searchDistance);
 
-    if (veiwableMonsters.length == 0 && veiwableItems.length == 0) {
+    if (veiwableMonsters.length == 0 && veiwableResources.length == 0) {
         return res.send(`Not Found`);
     } else {
         let txt = '';
         for (let m of veiwableMonsters) txt = txt + `Monster ${JSON.stringify(m.point)}</br>`;
-        for (let i of veiwableItems) txt = txt + `Item ${JSON.stringify(i.point)}</br>`;
+        for (let i of veiwableResources) txt = txt + `Resource ${JSON.stringify(i.point)}</br>`;
         return res.send(txt);
     }
 })
@@ -128,14 +128,14 @@ app.get('/atk', function (req, res) {
 app.get('/collect', function (req, res) {
     if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
 
-    let hereItem = itemList.find((item) => player.point.same(item.point));
+    let hereResource = resourceList.find((resource) => player.point.same(resource.point));
 
-    if (hereItem) {
+    if (hereResource) {
         player.values.actionTimer = nowTime + player.values.collectDelay;
-        itemList.splice(itemList.indexOf(hereItem), 1);
+        resourceList.splice(resourceList.indexOf(hereResource), 1);
         return res.send(`Collect Successs ${JSON.stringify(player.point)}}`);
     } else {
-        return res.send(`No Item Here ${JSON.stringify(player.point)}}`);
+        return res.send(`No Resource Here ${JSON.stringify(player.point)}}`);
     }
 })
 
@@ -148,7 +148,7 @@ function availablePoint() {
     let height = world.height;
     let usedPoints = [];
     usedPoints = usedPoints.concat(monsterList.map((m) => m.point));
-    usedPoints = usedPoints.concat(itemList.map((i) => i.point));
+    usedPoints = usedPoints.concat(resourceList.map((i) => i.point));
 
     let availablePoints = [];
     for (let x = 0; x < width; x++) {
@@ -176,7 +176,7 @@ function availablePoint() {
 function usedPoints() {
     let usedPoints = [];
     usedPoints = usedPoints.concat(monsterList.map((m) => m.point));
-    usedPoints = usedPoints.concat(itemList.map((i) => i.point));
+    usedPoints = usedPoints.concat(resourceList.map((i) => i.point));
     return usedPoints;
 }
 
@@ -205,7 +205,7 @@ setInterval(() => {
 
     // Check Amount
     if (monsterList.length >= MONSTER_AMOUNT_MAX) monsterTimer = nowTime + MONSTER_BORN_PERIOD;
-    if (itemList.length >= ITEM_AMOUNT_MAX) itemTimer = nowTime + ITEM_APPEAR_PERIOD;
+    if (resourceList.length >= RESOURCE_AMOUNT_MAX) resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
 
     // New Monster
     if (nowTime > monsterTimer) {
@@ -235,14 +235,14 @@ setInterval(() => {
         monsterTimer = nowTime + MONSTER_BORN_PERIOD;
     }
 
-    // New Item
-    if (nowTime > itemTimer) {
+    // New Resource
+    if (nowTime > resourceTimer) {
         let p = availablePoint();
         if (p) {
-            itemTimer = nowTime + ITEM_APPEAR_PERIOD;
-            let newItem = new Item(p, 0);
-            itemList.push(newItem);
-            console.log(`New Item ${JSON.stringify(p)}`);
+            resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
+            let newResource = new Resource(p, 0);
+            resourceList.push(newResource);
+            console.log(`New Resource ${JSON.stringify(p)}`);
         } else {
             console.log('No Available Point');
         }
@@ -251,7 +251,7 @@ setInterval(() => {
 }, 10)
 
 setInterval(() => {
-    console.log(`m:${monsterList.length} i:${itemList.length}`)
+    console.log(`m:${monsterList.length} i:${resourceList.length}`)
     return;
     let points = [];
     for (let area of areaList)
@@ -271,7 +271,7 @@ setInterval(() => {
             if (points.find((p) => p.same(point))) {
                 if (monsterList.find((m) => m.point.same(point)))
                     txt = txt + '怪';
-                else if (itemList.find((i) => i.point.same(point)))
+                else if (resourceList.find((i) => i.point.same(point)))
                     txt = txt + '東';
                 else
                     txt = txt + '口';

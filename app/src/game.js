@@ -240,7 +240,7 @@ export class Monster {
     }
 }
 
-export class Item {
+export class Resource {
 
     /**
      * 
