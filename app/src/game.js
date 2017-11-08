@@ -122,7 +122,7 @@ export class Area {
     getAllPoints() {
         /** @type {Array<Point>} */
         let points = [];
-        
+
         // Add include rect
         for (let rect of this.includeRectList) {
             points = points.concat(rect.getAllPoints());
@@ -207,6 +207,10 @@ export class Role {
     constructor(point, values) {
         this.point = point;
         this.values = values;
+        /** @type {Array<Item>} */
+        this.itemList = [];
+        this.money = 0;
+        this.score = 0;
     }
 }
 
@@ -274,6 +278,47 @@ export class World {
      */
     isPointInWorld(point) {
         return point.x >= 0 && point.y >= 0 && point.x < this.width && point.y < this.height;
+    }
+}
+
+export class Item {
+    /**
+     * 
+     * @param {Number} id 
+     */
+    constructor(id) {
+        this.id = id;
+    }
+}
+
+// export class ItemQuantity {
+//     /**
+//      * 
+//      * @param {Item} item 
+//      * @param {Number} quantity 
+//      */
+//     constructor(item, quantity) {
+//         this.item = item;
+//         this.quantity = quantity;
+//     }
+// }
+
+export class Quest {
+
+    /**
+     * 
+     * @param {Number} expiration
+     * @param {Array<Item>} requirements 
+     * @param {Array<Item>} rewards 
+     * @param {Number} money 
+     * @param {Number} score 
+     */
+    constructor(expiration, requirements, rewards, money = 0, score = 0) {
+        this.expiration = expiration
+        this.requirements = requirements;
+        this.rewards = rewards;
+        this.money = money;
+        this.score = score;
     }
 }
 

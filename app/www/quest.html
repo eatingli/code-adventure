@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Quest</title>
+</head>
+
+<body>
+    <table>
+        <thead>
+            <tr>
+                <td>Id</td>
+                <td>Expiration</td>
+                <td>Requirements</td>
+                <td>Reward</td>
+                <td>Money</td>
+                <td>Score</td>
+                <td>Submit</td>
+            </tr>
+        </thead>
+        <tbody id="quest_list">
+        </tbody>
+    </table>
+    <div id="bag">
+    </div>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+    <script>
+
+        function submitQuest(index) {
+            $.getJSON(`/submit?index=${index}`, function (data) {
+                console.log(data);
+            })
+        }
+        for (let i = 0; i < 10; i++) {
+            let tr = $("<tr></tr>");
+            tr.append(`<td>${i}</td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td><button onClick="submitQuest(${i})">Submit</button></td>`);
+            $("#quest_list").append(tr);
+        }
+
+        setInterval(function () {
+            $.getJSON('/quest', function (questList) {
+                questList.forEach((quest, i) => {
+                    let tr = $('#quest_list').children().eq(i);
+                    tr.children().eq(1).text(`${quest.expiration - Date.now()}`);
+                    tr.children().eq(2).text(`${quest.requirements.map((item) => item.id)}`);
+                    tr.children().eq(3).text(`${quest.rewards.map((item) => item.id)}`);
+                    tr.children().eq(4).text(`${quest.money}`);
+                    tr.children().eq(5).text(`${quest.score}`);
+                });
+            }).fail((e) => {
+                console.error(e);
+            });
+            $.getJSON('/self', function (self) {
+                $("#bag").text('Bag: ' + self.bag.map((item) => item.id).sort());
+            }).fail((e) => {
+                console.error(e);
+            });
+        }, 200)
+
+    </script>
+</body>
+
+</html>

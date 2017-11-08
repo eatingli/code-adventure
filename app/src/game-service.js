@@ -9,6 +9,8 @@ import {
     World,
     GameConfig,
     Resource,
+    Item,
+    Quest,
 } from './game.js'
 
 
@@ -18,10 +20,13 @@ const MONSTER_AMOUNT_MAX = 15;
 const RESOURCE_APPEAR_PERIOD = 1000;
 const RESOURCE_AMOUNT_MAX = 20;
 
+const QUEST_MAX = 10;
+const BAG_SIZE_MAX = 50;
+
 export default class Game {
 
     constructor() {
-        this.nowTime = Date.now();
+        let nowTime = this.nowTime = Date.now();
         // let world = new World(GameConfig.WORLD_WIDTH, GameConfig.WORLD_HEIGHT);
         let world = this.world = new World(10, 10);
         this.role = new Role(new Point(5, 5), new RoleValues(999999, 999999, 99));
@@ -31,6 +36,13 @@ export default class Game {
         this.resourceList = [];
         /** @type {Array<Area>} */
         let areaList = this.areaList = [new Area([new Rect(0, 0, 5, 10)], []), new Area([new Rect(5, 0, 5, 10)], [])];
+        /** @type {Array<Quest>} */
+        let questList = this.questList = [];
+
+        // test
+        this.role.money = 5000;
+        for (let i = 0; i < 30; i++)
+            this.role.itemList.push(new Item(i % 5));
 
         this.monsterTimer = Date.now();
         this.resourceTimer = Date.now();
@@ -52,8 +64,15 @@ export default class Game {
         for (let area of areaList) total += area.getAllPoints().length;
         if (total != world.height * world.height) throw new Error('Area Cover Error');
 
-        // Bind this
-        // this.availablePoint = this.availablePoint.bind(this);
+
+        // 隨機任務
+        for (let i = 0; i < QUEST_MAX; i++) {
+            let randomTime = 10000 + Math.floor(Math.random() * 50000);
+            let randomReq = Math.floor(Math.random() * 5);
+            let randomRew = 5 + Math.floor(Math.random() * 5);
+            questList.push(new Quest(nowTime + randomTime, [new Item(randomReq), new Item(randomReq)], [new Item(randomRew), new Item(randomRew)], 5, 5))
+        }
+
     }
 
     checkActionTimer() {
@@ -125,6 +144,52 @@ export default class Game {
         } else {
             throw new Error(`No Resource Here ${JSON.stringify(role.point)}}`);
         }
+    }
+
+    submit(questIndex) {
+        let questList = this.questList
+        if (questIndex >= questList.length || questIndex < 0) throw new Error('Quest index out of range');
+        let role = this.role;
+        let quest = questList[questIndex];
+        if (this.nowTime > quest.expiration) throw new Error('Quest expired');
+        if (role.itemList.length - quest.requirements.length + quest.rewards.length > BAG_SIZE_MAX) throw new Error('Bag out of size');
+
+        // Check role has item
+        let temp = [];
+        let check = true;
+        outer:
+        for (let need of quest.requirements) {
+            for (let has of role.itemList) {
+                if (temp.find((item) => item == has)) continue;
+                if (has.id == need.id) {
+                    temp.push(has);
+                    continue outer;
+                }
+            }
+            check = false;
+            break outer;
+        }
+        if (!check) throw new Error(`Don't reach quest requirements`);
+
+        // Remove requirements from bag
+        for (let item of temp)
+            role.itemList.splice(role.itemList.indexOf(item), 1);
+        // Add reward into bag
+        for (let item of quest.rewards)
+            role.itemList.push(item)
+
+        // Money and score
+        role.score += quest.score;
+        role.money += quest.money;
+
+        // Remove Quest
+        questList.splice(questIndex, 1);
+
+        // New Quest
+        let randomTime = 10000 + Math.floor(Math.random() * 50000);
+        let randomReq = Math.floor(Math.random() * 10);
+        let randomRew = Math.floor(Math.random() * 10);
+        questList.push(new Quest(this.nowTime + randomTime, [new Item(randomReq), new Item(randomReq)], [new Item(randomRew), new Item(randomRew)], 5, 5))
     }
 
     /**
@@ -204,6 +269,7 @@ export default class Game {
         let monsterList = this.monsterList;
         let resourceList = this.resourceList;
         let areaList = this.areaList;
+        let questList = this.questList;
 
         // Check Amount
         if (monsterList.length >= MONSTER_AMOUNT_MAX) this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
@@ -248,6 +314,16 @@ export default class Game {
             } else {
                 // console.log('No Available Point');
             }
+        }
+
+        // Remove expire quest
+        this.questList = this.questList.filter((quest) => quest.expiration > nowTime);
+        // Add new quest
+        for (let i = 0; i < QUEST_MAX - this.questList.length; i++) {
+            let randomTime = 10000 + Math.floor(Math.random() * 50000);
+            let randomReq = Math.floor(Math.random() * 10);
+            let randomRew = Math.floor(Math.random() * 10);
+            this.questList.push(new Quest(this.nowTime + randomTime, [new Item(randomReq), new Item(randomReq)], [new Item(randomRew), new Item(randomRew)], 5, 5))
         }
     }
 
