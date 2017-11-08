@@ -246,10 +246,12 @@ export class Resource {
      * 
      * @param {Point} point 
      * @param {Number} id
+     * @param {Number} stock
      */
-    constructor(point, id) {
+    constructor(point, id, stock) {
         this.point = point;
         this.id = id;
+        this.stock = stock;
     }
 }
 
