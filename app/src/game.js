@@ -174,7 +174,7 @@ export class RangeValue {
     }
 }
 
-export class PlayerValues {
+export class RoleValues {
 
     /**
      * 
@@ -197,12 +197,12 @@ export class PlayerValues {
     }
 }
 
-export class Player {
+export class Role {
 
     /**
      * 
      * @param {Point} point
-     * @param {PlayerValues} values
+     * @param {RoleValues} values
      */
     constructor(point, values) {
         this.point = point;

@@ -4,8 +4,8 @@ import {
     Point,
     Rect,
     Area,
-    PlayerValues,
-    Player,
+    RoleValues,
+    Role,
     MonsterValues,
     Monster,
     World,
@@ -29,7 +29,7 @@ const RESOURCE_AMOUNT_MAX = 20;
 let nowTime = Date.now();
 // let world = new World(GameConfig.WORLD_WIDTH, GameConfig.WORLD_HEIGHT);
 let world = new World(10, 10);
-let player = new Player(new Point(5, 5), new PlayerValues(999999, 999999, 99));
+let role = new Role(new Point(5, 5), new RoleValues(999999, 999999, 99));
 /** @type {Array<Monster>} */
 let monsterList = [];
 /** @type {Array<Resource>} */
@@ -69,23 +69,23 @@ app.get('/move', function (req, res) {
     let x = Number.parseInt(req.query.x);
     let y = Number.parseInt(req.query.y);
 
-    if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
-    let temp = player.point.move(x, y);
-    if (world.isPointInWorld(temp)) player.point = temp;
-    player.values.actionTimer = nowTime + player.values.moveDelay;
+    if (nowTime < role.values.actionTimer) return res.send(`Wait ActionTime`);
+    let temp = role.point.move(x, y);
+    if (world.isPointInWorld(temp)) role.point = temp;
+    role.values.actionTimer = nowTime + role.values.moveDelay;
 
-    let txt = `Player Move ... ${JSON.stringify(player.point)}`
+    let txt = `Role Move ... ${JSON.stringify(role.point)}`
     console.log(txt);
     res.send(txt);
 });
 
 app.get('/search', function (req, res) {
-    if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
-    player.values.actionTimer = nowTime + player.values.searchDelay;
+    if (nowTime < role.values.actionTimer) return res.send(`Wait ActionTime`);
+    role.values.actionTimer = nowTime + role.values.searchDelay;
 
     // Search Monster, Resource
-    let veiwableMonsters = monsterList.filter((m) => player.point.lineDistance(m.point) < player.values.searchDistance);
-    let veiwableResources = resourceList.filter((resource) => player.point.lineDistance(resource.point) < player.values.searchDistance);
+    let veiwableMonsters = monsterList.filter((m) => role.point.lineDistance(m.point) < role.values.searchDistance);
+    let veiwableResources = resourceList.filter((resource) => role.point.lineDistance(resource.point) < role.values.searchDistance);
 
     if (veiwableMonsters.length == 0 && veiwableResources.length == 0) {
         return res.send(`Not Found`);
@@ -98,44 +98,44 @@ app.get('/search', function (req, res) {
 })
 
 app.get('/atk', function (req, res) {
-    if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
+    if (nowTime < role.values.actionTimer) return res.send(`Wait ActionTime`);
 
-    let hereMonster = monsterList.find((m) => player.point.same(m.point));
+    let hereMonster = monsterList.find((m) => role.point.same(m.point));
 
     if (hereMonster) {
         if (hereMonster.values.nowLife <= 0) return res.send(`Monster Already Died`); // 不可能被執行到
 
-        let playerNewLife = player.values.nowLife - hereMonster.values.atk;
-        let monsterNewLife = hereMonster.values.nowLife - player.values.atk;
-        if (playerNewLife <= 0) return res.send(`Player Life Not Enough`);
+        let roleNewLife = role.values.nowLife - hereMonster.values.atk;
+        let monsterNewLife = hereMonster.values.nowLife - role.values.atk;
+        if (roleNewLife <= 0) return res.send(`Role Life Not Enough`);
 
-        player.values.actionTimer = nowTime + player.values.collectDelay;
-        player.values.nowLife = playerNewLife;
+        role.values.actionTimer = nowTime + role.values.collectDelay;
+        role.values.nowLife = roleNewLife;
 
         if (monsterNewLife <= 0) {
             monsterList.splice(monsterList.indexOf(hereMonster), 1);
-            return res.send(`Kill Monster Successs ${JSON.stringify(player.point)}}`);
+            return res.send(`Kill Monster Successs ${JSON.stringify(role.point)}}`);
         } else {
             hereMonster.values.nowLife = monsterNewLife;
-            return res.send(`Atk Monster Successs. Player:${player.values.nowLife} Monster:${hereMonster.values.nowLife}`);
+            return res.send(`Atk Monster Successs. Role:${role.values.nowLife} Monster:${hereMonster.values.nowLife}`);
         }
 
     } else {
-        return res.send(`No Monster Here ${JSON.stringify(player.point)}}`);
+        return res.send(`No Monster Here ${JSON.stringify(role.point)}}`);
     }
 })
 
 app.get('/collect', function (req, res) {
-    if (nowTime < player.values.actionTimer) return res.send(`Wait ActionTime`);
+    if (nowTime < role.values.actionTimer) return res.send(`Wait ActionTime`);
 
-    let hereResource = resourceList.find((resource) => player.point.same(resource.point));
+    let hereResource = resourceList.find((resource) => role.point.same(resource.point));
 
     if (hereResource) {
-        player.values.actionTimer = nowTime + player.values.collectDelay;
+        role.values.actionTimer = nowTime + role.values.collectDelay;
         resourceList.splice(resourceList.indexOf(hereResource), 1);
-        return res.send(`Collect Successs ${JSON.stringify(player.point)}}`);
+        return res.send(`Collect Successs ${JSON.stringify(role.point)}}`);
     } else {
-        return res.send(`No Resource Here ${JSON.stringify(player.point)}}`);
+        return res.send(`No Resource Here ${JSON.stringify(role.point)}}`);
     }
 })
 
