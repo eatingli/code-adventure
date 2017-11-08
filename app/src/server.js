@@ -1,15 +1,14 @@
+import path from 'path'
 import express from 'express'
 import * as Game from './game.js'
 import GameService from './game-service.js'
 
-const app = express();
-
 let gameService = new GameService()
 gameService.start();
 
-app.get('/', function (req, res) {
-    res.send('Hello World!');
-});
+const app = express();
+let www = path.join(__dirname, '..', 'www');
+app.use(express.static(www));
 
 app.get('/move', function (req, res) {
     if (!gameService.checkActionTimer()) return res.send(`Wait ActionTime`);

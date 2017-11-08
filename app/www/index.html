@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Code Adventure</title>
+</head>
+
+<body>
+    <button id="west">左</button>
+    <button id="north">上</button>
+    <button id="south">下</button>
+    <button id="east">右</button>
+    <button id="search">Search</button>
+    <button id="atk">Atk</button>
+    <button id="collect">Collect</button>
+    <div id="result"></div>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+    <script>
+        $.get('/search', (data) => {
+            $("#result").text(data);
+        })
+        $("#west").click(() => {
+            $.get('/move?x=-1&y=0', (data) => {
+                $("#result").text(data);
+            })
+        })
+        $("#north").click(() => {
+            $.get('/move?x=0&y=-1', (data) => {
+                $("#result").text(data);
+            })
+        })
+        $("#south").click(() => {
+            $.get('/move?x=0&y=1', (data) => {
+                $("#result").text(data);
+            })
+        })
+        $("#east").click(() => {
+            $.get('/move?x=1&y=0', (data) => {
+                $("#result").text(data);
+            })
+        })
+        $("#search").click(() => {
+            $.get('/search', (data) => {
+                $("#result").text(data);
+            })
+        })
+        $("#atk").click(() => {
+            $.get('/atk', (data) => {
+                $("#result").text(data);
+            })
+        })
+        $("#collect").click(() => {
+            $.get('/collect', (data) => {
+                $("#result").text(data);
+            })
+        })
+    </script>
+</body>
+
+</html>
