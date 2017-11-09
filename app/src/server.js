@@ -72,20 +72,12 @@ app.get('/self', function (req, res) {
 })
 
 app.get('/quest', function (req, res) {
-    // let temp = gameService.questMap.map((quest) => ({ ...quest, expiration: quest.expiration - gameService.nowTime }))
-    let temp = [];
-    gameService.questMap.forEach((quest, key) => {
-        temp.push({
-            id: key,
-            ...quest,
-            expiration: quest.expiration - gameService.nowTime
-        })
-    })
+    let temp = gameService.questList.map((quest) => ({ ...quest, expiration: quest.expiration - gameService.nowTime }))
     return res.send(JSON.stringify(temp));
 })
 
 app.get('/submit', function (req, res) {
-    let id = req.query.id;
+    let id = Number(req.query.id);
     try {
         gameService.submit(id);
         return res.send(`Submit Quest Successs`);

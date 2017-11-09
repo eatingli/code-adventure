@@ -36,8 +36,10 @@ export default class GameService {
         this.resourceList = [];
         /** @type {Array<Area>} */
         let areaList = this.areaList = [new Area([new Rect(0, 0, 5, 10)], []), new Area([new Rect(5, 0, 5, 10)], [])];
-        /** @type {Map<String, Quest>} */
-        let questMap = this.questMap = new Map();
+        /** @type {Array<Quest>} */
+        let questList = this.questList = [];
+
+        this.itemIdCounter = 0;
         this.questIdConuter = 0;
 
         this.monsterTimer = Date.now();
@@ -62,7 +64,7 @@ export default class GameService {
         // test
         this.role.money = 5000;
         for (let i = 0; i < 30; i++)
-            this.role.itemList.push(new Item(i % 5));
+            this.role.itemList.push(this.newItem(i % 5));
 
         // 隨機任務
         for (let i = 0; i < QUEST_MAX; i++) {
@@ -118,7 +120,7 @@ export default class GameService {
             // Kill
             if (monsterNewLife <= 0) {
                 monsterList.splice(monsterList.indexOf(hereMonster), 1);
-                this.monsterReward(hereMonster.id);
+                this.monsterReward(hereMonster.type);
                 return null;
             } else {
                 hereMonster.values.nowLife = monsterNewLife;
@@ -134,19 +136,21 @@ export default class GameService {
         let role = this.role;
         let resourceList = this.resourceList;
         let hereResource = resourceList.find((resource) => role.point.same(resource.point));
+        if (!hereResource) throw new Error(`No Resource Here ${JSON.stringify(role.point)}}`);
+        if (hereResource.stock < 1) throw new Error(`No Enough Resource`);
 
-        if (hereResource) {
-            role.values.actionTimer = this.nowTime + role.values.collectDelay;
+        role.values.actionTimer = this.nowTime + role.values.collectDelay;
+        hereResource.stock -= 1;
+        if (hereResource.stock == 0)
             resourceList.splice(resourceList.indexOf(hereResource), 1);
-        } else {
-            throw new Error(`No Resource Here ${JSON.stringify(role.point)}}`);
-        }
+
+        this.resourceReward(hereResource.type);
     }
 
     submit(questId) {
-        let questMap = this.questMap;
+        let questList = this.questList;
         let role = this.role;
-        let quest = questMap.get(questId);
+        let quest = questList.find((quest) => quest.id == questId);
         if (!quest) throw new Error('Quest not found');
         if (this.nowTime > quest.expiration) throw new Error('Quest expired');
         if (role.itemList.length - quest.requirements.length + quest.rewards.length > BAG_SIZE_MAX) throw new Error('Bag out of size');
@@ -158,7 +162,7 @@ export default class GameService {
         for (let need of quest.requirements) {
             for (let has of role.itemList) {
                 if (temp.find((item) => item == has)) continue;
-                if (has.id == need.id) {
+                if (has.type == need.type) {
                     temp.push(has);
                     continue outer;
                 }
@@ -180,7 +184,7 @@ export default class GameService {
         role.money += quest.money;
 
         // Update Quest
-        questMap.delete(questId);
+        questList.splice(questList.findIndex((quest) => quest.id == questId), 1)
         this.newRandomQuest();
     }
 
@@ -257,14 +261,13 @@ export default class GameService {
     }
 
     newRandomQuest() {
-        let randomTime = 10000 + Math.floor(Math.random() * 50000);
+        let randomTime = 10000 + Math.floor(Math.random() * 5000);
         let randomReq = Math.floor(Math.random() * 6);
         let randomRew = Math.floor(Math.random() * 6);
-        let requirements = [new Item(randomReq), new Item(randomReq)];
-        let rewards = [new Item(randomRew), new Item(randomRew)];
-        let newQ = new Quest(this.nowTime + randomTime, requirements, rewards, 5, 5);
-        let id = this.questIdConuter++;
-        this.questMap.set(id.toString(), newQ);
+        let requirements = [this.newItem(randomReq), this.newItem(randomReq)];
+        let rewards = [this.newItem(randomRew), this.newItem(randomRew)];
+        let newQ = new Quest(this.questIdConuter++, this.nowTime + randomTime, requirements, rewards, 5, 5);
+        this.questList.push(newQ)
     }
 
     newRandomMonster() {
@@ -286,8 +289,8 @@ export default class GameService {
             if (r > -1) this.resourceList.splice(r, 1);
 
             // 產生該區域特色怪物
-            let randomId = Math.floor(Math.random() * 5);
-            let newMonster = new Monster(p, randomId, new MonsterValues(200, 200, 15));
+            let randomType = Math.floor(Math.random() * 5);
+            let newMonster = new Monster(p, randomType, new MonsterValues(200, 200, 15));
             this.monsterList.push(newMonster);
         }
     }
@@ -308,49 +311,54 @@ export default class GameService {
             let p = GameService.randomPoint(availablePoints);
 
             // 產生資源
-            let newResource = new Resource(p, 0, 5);
+            let randomType = Math.floor(Math.random() * 5);
+            let newResource = new Resource(p, randomType, 3);
             this.resourceList.push(newResource);
 
         }
     }
 
-    monsterReward(mId) {
+    newItem(type) {
+        return new Item(this.itemIdCounter++, type)
+    }
+
+    monsterReward(type) {
         let items = [];
         let money = 0;
         let score = 0;
-        switch (mId) {
+        switch (type) {
             case 0:
-                if (Math.random() < 0.6) items.push(new Item(0))
-                if (Math.random() < 0.1) items.push(new Item(0))
-                if (Math.random() < 0.01) items.push(new Item(1))
+                if (Math.random() < 0.6) items.push(this.newItem(0))
+                if (Math.random() < 0.1) items.push(this.newItem(0))
+                if (Math.random() < 0.01) items.push(this.newItem(1))
                 money = 5;
                 score = 1;
                 break;
             case 1:
-                if (Math.random() < 0.6) items.push(new Item(1))
-                if (Math.random() < 0.1) items.push(new Item(1))
-                if (Math.random() < 0.01) items.push(new Item(2))
+                if (Math.random() < 0.6) items.push(this.newItem(1))
+                if (Math.random() < 0.1) items.push(this.newItem(1))
+                if (Math.random() < 0.01) items.push(this.newItem(2))
                 money = 8;
                 score = 1;
                 break;
             case 2:
-                if (Math.random() < 0.6) items.push(new Item(2))
-                if (Math.random() < 0.1) items.push(new Item(2))
-                if (Math.random() < 0.01) items.push(new Item(3))
+                if (Math.random() < 0.6) items.push(this.newItem(2))
+                if (Math.random() < 0.1) items.push(this.newItem(2))
+                if (Math.random() < 0.01) items.push(this.newItem(3))
                 money = 12;
                 score = 1;
                 break;
             case 3:
-                if (Math.random() < 0.6) items.push(new Item(3))
-                if (Math.random() < 0.1) items.push(new Item(3))
-                if (Math.random() < 0.01) items.push(new Item(4))
+                if (Math.random() < 0.6) items.push(this.newItem(3))
+                if (Math.random() < 0.1) items.push(this.newItem(3))
+                if (Math.random() < 0.01) items.push(this.newItem(4))
                 money = 15;
                 score = 1;
                 break;
             case 4:
-                if (Math.random() < 0.6) items.push(new Item(4))
-                if (Math.random() < 0.2) items.push(new Item(4))
-                if (Math.random() < 0.1) items.push(new Item(4))
+                if (Math.random() < 0.6) items.push(this.newItem(4))
+                if (Math.random() < 0.2) items.push(this.newItem(4))
+                if (Math.random() < 0.1) items.push(this.newItem(4))
                 money = 30;
                 score = 10;
                 break;
@@ -361,12 +369,25 @@ export default class GameService {
         this.role.money += money;
     }
 
+    resourceReward(type) {
+        let itemType = null;
+        switch (type) {
+            case 0: itemType = 0; break;
+            case 1: itemType = 1; break;
+            case 2: itemType = 2; break;
+            case 3: itemType = 3; break;
+            case 4: itemType = 4; break;
+        }
+        if (this.role.itemList.length < BAG_SIZE_MAX)
+            this.role.itemList.push(this.newItem(itemType));
+    }
+
     loop() {
         let nowTime = this.nowTime = Date.now();
         let monsterList = this.monsterList;
         let resourceList = this.resourceList;
         let areaList = this.areaList;
-        let questMap = this.questMap;
+        let questList = this.questList;
 
         // Check Amount
         if (monsterList.length >= MONSTER_AMOUNT_MAX * 2) this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
@@ -387,12 +408,12 @@ export default class GameService {
         }
 
         // Update expire quest
-        this.questMap.forEach((quest, key) => {
-            if (quest.expiration < this.nowTime) {
-                this.questMap.delete(key);
-                this.newRandomQuest();
-            }
-        })
+        let expire = this.questList.filter((quest) => quest.expiration < this.nowTime);
+        for (let quest of expire) {
+            this.questList.splice(this.questList.indexOf(quest), 1);
+        }
+        for (let i = 0; i < expire.length; i++)
+            this.newRandomQuest();
     }
 
     start() {

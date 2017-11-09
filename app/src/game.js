@@ -227,12 +227,12 @@ export class Monster {
     /**
      * 
      * @param {Point} point 
-     * @param {Number} id
+     * @param {Number} type
      * @param {MonsterValues} values
      */
-    constructor(point, id, values) {
+    constructor(point, type, values) {
         this.point = point;
-        this.id = id;
+        this.type = type;
         this.values = values;
     }
 }
@@ -242,12 +242,12 @@ export class Resource {
     /**
      * 
      * @param {Point} point 
-     * @param {Number} id
+     * @param {Number} type
      * @param {Number} stock
      */
-    constructor(point, id, stock) {
+    constructor(point, type, stock) {
         this.point = point;
-        this.id = id;
+        this.type = type;
         this.stock = stock;
     }
 }
@@ -276,37 +276,28 @@ export class World {
 
 export class Item {
     /**
-     * 
      * @param {Number} id 
+     * @param {Number} type 
      */
-    constructor(id) {
+    constructor(id, type) {
         this.id = id;
+        this.type = type;
     }
 }
-
-// export class ItemQuantity {
-//     /**
-//      * 
-//      * @param {Item} item 
-//      * @param {Number} quantity 
-//      */
-//     constructor(item, quantity) {
-//         this.item = item;
-//         this.quantity = quantity;
-//     }
-// }
 
 export class Quest {
 
     /**
      * 
+     * @param {Number} id 
      * @param {Number} expiration
      * @param {Array<Item>} requirements 
      * @param {Array<Item>} rewards 
      * @param {Number} money 
      * @param {Number} score 
      */
-    constructor(expiration, requirements, rewards, money = 0, score = 0) {
+    constructor(id, expiration, requirements, rewards, money = 0, score = 0) {
+        this.id = id;
         this.expiration = expiration
         this.requirements = requirements;
         this.rewards = rewards;
