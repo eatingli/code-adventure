@@ -72,13 +72,22 @@ app.get('/self', function (req, res) {
 })
 
 app.get('/quest', function (req, res) {
-    return res.send(JSON.stringify(gameService.questList));
+    // let temp = gameService.questMap.map((quest) => ({ ...quest, expiration: quest.expiration - gameService.nowTime }))
+    let temp = [];
+    gameService.questMap.forEach((quest, key) => {
+        temp.push({
+            id: key,
+            ...quest,
+            expiration: quest.expiration - gameService.nowTime
+        })
+    })
+    return res.send(JSON.stringify(temp));
 })
 
 app.get('/submit', function (req, res) {
-    let index = Number.parseInt(req.query.index);
+    let id = req.query.id;
     try {
-        gameService.submit(index);
+        gameService.submit(id);
         return res.send(`Submit Quest Successs`);
     } catch (e) {
         return res.status(405).send(e.message);
@@ -93,19 +102,6 @@ app.listen(3000, function () {
 
 // Test print game world
 setInterval(() => {
-
-    // console.log(gameService.role.itemList.length);
-    // console.log(gameService.questList.length);
-    // try {
-    //     let qId = Math.floor(Math.random() * 10);
-    //     console.log(gameService.questList[qId].requirements.map((item) => item.id));
-    //     console.log(gameService.questList[qId].rewards.map((item) => item.id));
-    //     console.log(gameService.role.itemList.map((item) => item.id).join(','));
-    //     console.log(gameService.role.money);
-    //     gameService.submit(qId)
-    // } catch (e) {
-    //     console.error(e.message)
-    // }
 
     return;
     let points = [];

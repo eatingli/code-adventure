@@ -30,20 +30,22 @@
         crossorigin="anonymous"></script>
     <script>
 
-        function submitQuest(index) {
-            $.getJSON(`/submit?index=${index}`, function (data) {
+        function submitQuest(id) {
+            $.get(`/submit?id=${id}`, function (data) {
                 console.log(data);
-            })
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
+            });
         }
         for (let i = 0; i < 10; i++) {
             let tr = $("<tr></tr>");
-            tr.append(`<td>${i}</td>`);
             tr.append(`<td></td>`);
             tr.append(`<td></td>`);
             tr.append(`<td></td>`);
             tr.append(`<td></td>`);
             tr.append(`<td></td>`);
-            tr.append(`<td><button onClick="submitQuest(${i})">Submit</button></td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
             $("#quest_list").append(tr);
         }
 
@@ -51,21 +53,24 @@
             $.getJSON('/quest', function (questList) {
                 questList.forEach((quest, i) => {
                     let tr = $('#quest_list').children().eq(i);
-                    tr.children().eq(1).text(`${quest.expiration - Date.now()}`);
+                    tr.children().eq(1).text(`${quest.expiration}`);
+                    if (quest.id === tr.children().eq(0).text()) return;
+                    tr.children().eq(0).text(`${quest.id}`);
                     tr.children().eq(2).text(`${quest.requirements.map((item) => item.id)}`);
                     tr.children().eq(3).text(`${quest.rewards.map((item) => item.id)}`);
                     tr.children().eq(4).text(`${quest.money}`);
                     tr.children().eq(5).text(`${quest.score}`);
+                    tr.children().eq(6).html(`<td><button onClick="submitQuest(${quest.id})">Submit</button></td>`);
                 });
-            }).fail((e) => {
-                console.error(e);
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
             });
             $.getJSON('/self', function (self) {
                 $("#bag").text('Bag: ' + self.bag.map((item) => item.id).sort());
-            }).fail((e) => {
-                console.error(e);
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
             });
-        }, 200)
+        }, 400)
 
     </script>
 </body>

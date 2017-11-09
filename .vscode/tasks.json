@@ -7,6 +7,11 @@
             "type": "npm",
             "script": "babel-w",
             "problemMatcher": []
+        },
+        {
+            "type": "npm",
+            "script": "start",
+            "problemMatcher": []
         }
     ]
 }
