@@ -103,7 +103,7 @@ app.listen(3000, function () {
 // Test print game world
 setInterval(() => {
 
-    return;
+    // return;
     let points = [];
     for (let area of gameService.areaList)
         points = points.concat(area.getAllPoints())
@@ -135,4 +135,4 @@ setInterval(() => {
         console.log(txt);
     }
     console.log('-------------------');
-}, 2000)
+}, 200)

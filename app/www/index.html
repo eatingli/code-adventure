@@ -9,55 +9,73 @@
 </head>
 
 <body>
-    <button id="west">左</button>
-    <button id="north">上</button>
-    <button id="south">下</button>
-    <button id="east">右</button>
-    <button id="search">Search</button>
-    <button id="atk">Atk</button>
-    <button id="collect">Collect</button>
+    <button id="west" onclick="west()">左</button>
+    <button id="north" onclick="north()">上</button>
+    <button id="south" onclick="south()">下</button>
+    <button id="east" onclick="east()">右</button>
+    <button id="search" onclick="search()">Search</button>
+    <button id="atk" onclick="atk()">Atk</button>
+    <button id="collect" onclick="collect()">Collect</button>
     <div id="result"></div>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
         crossorigin="anonymous"></script>
     <script>
-        $.get('/search', (data) => {
-            $("#result").text(data);
-        })
-        $("#west").click(() => {
-            $.get('/move?x=-1&y=0', (data) => {
-                $("#result").text(data);
-            })
-        })
-        $("#north").click(() => {
+
+        function north() {
             $.get('/move?x=0&y=-1', (data) => {
                 $("#result").text(data);
             })
-        })
-        $("#south").click(() => {
+        }
+
+        function south() {
             $.get('/move?x=0&y=1', (data) => {
                 $("#result").text(data);
             })
-        })
-        $("#east").click(() => {
+        }
+
+        function west() {
+            $.get('/move?x=-1&y=0', (data) => {
+                $("#result").text(data);
+            })
+        }
+
+        function east() {
             $.get('/move?x=1&y=0', (data) => {
                 $("#result").text(data);
             })
-        })
-        $("#search").click(() => {
+        }
+
+        function search() {
             $.get('/search', (data) => {
                 $("#result").text(data);
             })
-        })
-        $("#atk").click(() => {
+        }
+
+        function atk() {
             $.get('/atk', (data) => {
                 $("#result").text(data);
             })
-        })
-        $("#collect").click(() => {
+        }
+
+        function collect() {
             $.get('/collect', (data) => {
                 $("#result").text(data);
             })
-        })
+        }
+
+        $("body").keydown(function (event) {
+            // event.preventDefault();
+            // console.log(event.key);
+            switch (event.key) {
+                case 'ArrowUp': return north();
+                case 'ArrowDown': return south();
+                case 'ArrowLeft': return west();
+                case 'ArrowRight': return east();
+                case 'a': return atk();
+                case 's': return search();
+                case 'c': return collect();
+            }
+        });
     </script>
 </body>
 

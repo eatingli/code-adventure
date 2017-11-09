@@ -15,15 +15,15 @@ import {
 
 
 // Const
-const MONSTER_BORN_PERIOD = 3000;
+const MONSTER_BORN_PERIOD = 1000;
 const MONSTER_AMOUNT_MAX = 15;
 const RESOURCE_APPEAR_PERIOD = 1000;
-const RESOURCE_AMOUNT_MAX = 20;
+const RESOURCE_AMOUNT_MAX = 15;
 
 const QUEST_MAX = 10;
 const BAG_SIZE_MAX = 50;
 
-export default class Game {
+export default class GameService {
 
     constructor() {
         let nowTime = this.nowTime = Date.now();
@@ -69,17 +69,6 @@ export default class Game {
             this.newRandomQuest();
         }
 
-    }
-
-    newRandomQuest() {
-        let randomTime = 10000 + Math.floor(Math.random() * 50000);
-        let randomReq = Math.floor(Math.random() * 6);
-        let randomRew = Math.floor(Math.random() * 6);
-        let requirements = [new Item(randomReq), new Item(randomReq)];
-        let rewards = [new Item(randomRew), new Item(randomRew)];
-        let newQ = new Quest(this.nowTime + randomTime, requirements, rewards, 5, 5);
-        let id = this.questIdConuter++;
-        this.questMap.set(id.toString(), newQ);
     }
 
     checkActionTimer() {
@@ -129,6 +118,7 @@ export default class Game {
             // Kill
             if (monsterNewLife <= 0) {
                 monsterList.splice(monsterList.indexOf(hereMonster), 1);
+                this.monsterReward(hereMonster.id);
                 return null;
             } else {
                 hereMonster.values.nowLife = monsterNewLife;
@@ -241,8 +231,8 @@ export default class Game {
 
     /**
      * Remove points from other points
-     * @param {*} points 
-     * @param {*} removePoints 
+     * @param {Array<Point>} points 
+     * @param {Array<Point>} removePoints 
      */
     static filterPoints(points, removePoints) {
         return points.filter((p1) => {
@@ -266,6 +256,111 @@ export default class Game {
         }
     }
 
+    newRandomQuest() {
+        let randomTime = 10000 + Math.floor(Math.random() * 50000);
+        let randomReq = Math.floor(Math.random() * 6);
+        let randomRew = Math.floor(Math.random() * 6);
+        let requirements = [new Item(randomReq), new Item(randomReq)];
+        let rewards = [new Item(randomRew), new Item(randomRew)];
+        let newQ = new Quest(this.nowTime + randomTime, requirements, rewards, 5, 5);
+        let id = this.questIdConuter++;
+        this.questMap.set(id.toString(), newQ);
+    }
+
+    newRandomMonster() {
+
+        // 各區域獨立產生
+        for (let area of this.areaList) {
+
+            // 檢查區域數量上限
+            let amount = this.monsterList.filter((monster) => area.isPointInArea(monster.point)).length;
+            if (amount >= MONSTER_AMOUNT_MAX) continue;
+
+            // Available Point: 只要沒有怪物都行
+            let availablePoints = GameService.filterPoints(area.getAllPoints(), this.monsterList.map((monster) => monster.point));
+            if (availablePoints.length < 1) continue;
+            let p = GameService.randomPoint(availablePoints);
+
+            // 如果該位置有資源，則刪除掉
+            let r = this.resourceList.findIndex((r) => r.point.same(p));
+            if (r > -1) this.resourceList.splice(r, 1);
+
+            // 產生該區域特色怪物
+            let randomId = Math.floor(Math.random() * 5);
+            let newMonster = new Monster(p, randomId, new MonsterValues(200, 200, 15));
+            this.monsterList.push(newMonster);
+        }
+    }
+
+    newRandomResource() {
+
+        // 各區域獨立產生
+        for (let area of this.areaList) {
+            // 檢查區域數量上限
+            let amount = this.resourceList.filter((r) => area.isPointInArea(r.point)).length;
+            if (amount >= RESOURCE_AMOUNT_MAX) continue;
+
+            // Available Point: 沒有怪物、沒有資源、不在佔領區
+            let availablePoints = area.getAllPoints()
+            availablePoints = GameService.filterPoints(availablePoints, this.monsterList.map((monster) => monster.point));
+            availablePoints = GameService.filterPoints(availablePoints, this.resourceList.map((monster) => monster.point));
+            if (availablePoints.length < 1) continue;
+            let p = GameService.randomPoint(availablePoints);
+
+            // 產生資源
+            let newResource = new Resource(p, 0, 5);
+            this.resourceList.push(newResource);
+
+        }
+    }
+
+    monsterReward(mId) {
+        let items = [];
+        let money = 0;
+        let score = 0;
+        switch (mId) {
+            case 0:
+                if (Math.random() < 0.6) items.push(new Item(0))
+                if (Math.random() < 0.1) items.push(new Item(0))
+                if (Math.random() < 0.01) items.push(new Item(1))
+                money = 5;
+                score = 1;
+                break;
+            case 1:
+                if (Math.random() < 0.6) items.push(new Item(1))
+                if (Math.random() < 0.1) items.push(new Item(1))
+                if (Math.random() < 0.01) items.push(new Item(2))
+                money = 8;
+                score = 1;
+                break;
+            case 2:
+                if (Math.random() < 0.6) items.push(new Item(2))
+                if (Math.random() < 0.1) items.push(new Item(2))
+                if (Math.random() < 0.01) items.push(new Item(3))
+                money = 12;
+                score = 1;
+                break;
+            case 3:
+                if (Math.random() < 0.6) items.push(new Item(3))
+                if (Math.random() < 0.1) items.push(new Item(3))
+                if (Math.random() < 0.01) items.push(new Item(4))
+                money = 15;
+                score = 1;
+                break;
+            case 4:
+                if (Math.random() < 0.6) items.push(new Item(4))
+                if (Math.random() < 0.2) items.push(new Item(4))
+                if (Math.random() < 0.1) items.push(new Item(4))
+                money = 30;
+                score = 10;
+                break;
+        }
+        for (let item of items)
+            if (this.role.itemList.length < BAG_SIZE_MAX) this.role.itemList.push(item);
+        this.role.score += score;
+        this.role.money += money;
+    }
+
     loop() {
         let nowTime = this.nowTime = Date.now();
         let monsterList = this.monsterList;
@@ -274,48 +369,21 @@ export default class Game {
         let questMap = this.questMap;
 
         // Check Amount
-        if (monsterList.length >= MONSTER_AMOUNT_MAX) this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
-        if (resourceList.length >= RESOURCE_AMOUNT_MAX) this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
+        if (monsterList.length >= MONSTER_AMOUNT_MAX * 2) this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
+        if (resourceList.length >= RESOURCE_AMOUNT_MAX * 2) this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
+
+        // 區域必須有獨立 timer 和 counter
 
         // New Monster
         if (nowTime > this.monsterTimer) {
-
-            for (let area of areaList) {
-
-                // check
-                let amount = monsterList.filter((m) => area.isPointInArea(m.point)).length;
-                if (amount >= MONSTER_AMOUNT_MAX) continue;
-
-                let points = area.getAllPoints();
-                points = Game.filterPoints(points, this.usedPoints());
-
-                let p = Game.randomPoint(points);
-
-                if (p) {
-                    let newMonster = new Monster(p, 0, new MonsterValues(200, 200, 15));
-                    monsterList.push(newMonster);
-                    // console.log(`New Monster ${JSON.stringify(p)}`);
-                } else {
-                    // console.log('No Available Point');
-                }
-
-                if (monsterList.length >= MONSTER_AMOUNT_MAX) break;
-            }
-
+            this.newRandomMonster();
             this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
         }
 
         // New Resource
         if (nowTime > this.resourceTimer) {
-            let p = this.availablePoint();
-            if (p) {
-                this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
-                let newResource = new Resource(p, 0, 5);
-                resourceList.push(newResource);
-                // console.log(`New Resource ${JSON.stringify(p)}`);
-            } else {
-                // console.log('No Available Point');
-            }
+            this.newRandomResource();
+            this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
         }
 
         // Update expire quest

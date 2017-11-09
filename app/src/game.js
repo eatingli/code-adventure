@@ -148,14 +148,7 @@ export class Area {
             i1++;
         }
 
-        // Return
         return points;
-        // if (availablePoints.length > 0) {
-        //     return availablePoints;
-        //     // return availablePoints[Math.floor(Math.random() * availablePoints.length)];
-        // } else {
-        //     return null;
-        // }
     }
 }
 
