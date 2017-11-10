@@ -306,6 +306,17 @@ export class Quest {
     }
 }
 
+export class Shop {
+
+    /**
+     * 
+     * @param {Array<Item>} itemList 
+     */
+    constructor(itemList) {
+        this.itemList = itemList;
+    }
+}
+
 
 export class GameConfig {
     static WORLD_WIDTH = 57;

@@ -11,17 +11,22 @@ import {
     Resource,
     Item,
     Quest,
+    Shop,
 } from './game.js'
 
 
 // Const
 const MONSTER_BORN_PERIOD = 1000;
-const MONSTER_AMOUNT_MAX = 15;
+const MONSTER_AMOUNT_MAX = 6;
 const RESOURCE_APPEAR_PERIOD = 1000;
-const RESOURCE_AMOUNT_MAX = 15;
+const RESOURCE_AMOUNT_MAX = 6;
+const SHOP_REFRESH_PERIOD = 10000;
+const SHOP_ITEM_MAX = 5;
+const SHOP_REFRESH_PRICE = 1500;
 
 const QUEST_MAX = 10;
 const BAG_SIZE_MAX = 50;
+const AREA_AMOUNT = 4;
 
 export default class GameService {
 
@@ -34,16 +39,31 @@ export default class GameService {
         this.monsterList = [];
         /** @type {Array<Resource>} */
         this.resourceList = [];
+
+        let area1 = new Area([new Rect(0, 0, 5, 5)], []);
+        let area2 = new Area([new Rect(5, 0, 5, 5)], []);
+        let area3 = new Area([new Rect(0, 5, 5, 5)], []);
+        let area4 = new Area([new Rect(5, 5, 5, 5)], []);
         /** @type {Array<Area>} */
-        let areaList = this.areaList = [new Area([new Rect(0, 0, 5, 10)], []), new Area([new Rect(5, 0, 5, 10)], [])];
+        let areaList = this.areaList = [area1, area2, area3, area4];
         /** @type {Array<Quest>} */
         let questList = this.questList = [];
+        /** @type {Array<Shop>} */
+        let shopList = this.shopList = [];
+        for (let i = 0; i < AREA_AMOUNT; i++) shopList.push(new Shop([]));
+        /** @type {Map<Area, Shop>} */
+        let shopMap = this.shopMap = new Map();
+        for (let i = 0; i < AREA_AMOUNT; i++) shopMap.set(areaList[i], shopList[i]);
 
         this.itemIdCounter = 0;
         this.questIdConuter = 0;
 
         this.monsterTimer = Date.now();
         this.resourceTimer = Date.now();
+        this.shopRefreshTimer = Date.now(); //+ SHOP_REFRESH_PERIOD;
+
+        // 檢查 Area 數量
+        if (this.areaList.length != AREA_AMOUNT) throw new Error('Area Amount Error');
         // 檢查 Area 不重疊
         if (areaList.length > 1) {
             for (let i = 0; i < areaList.length; i++) {
@@ -62,7 +82,7 @@ export default class GameService {
         if (total != world.height * world.height) throw new Error('Area Cover Error');
 
         // test
-        this.role.money = 5000;
+        this.role.money = 50000;
         for (let i = 0; i < 30; i++)
             this.role.itemList.push(this.newItem(i % 5));
 
@@ -186,6 +206,56 @@ export default class GameService {
         // Update Quest
         questList.splice(questList.findIndex((quest) => quest.id == questId), 1)
         this.newRandomQuest();
+    }
+
+    sellItem(id) {
+        let item = this.role.itemList.find((i) => i.id == id);
+        if (!item) throw new Error('Item not found');
+        this.role.money += this.itemRecyclePrice(item.type);
+        this.role.itemList.splice(this.role.itemList.findIndex((i) => i.id == id), 1);
+    }
+
+    buyItem(id) {
+
+        if (this.role.itemList.length >= BAG_SIZE_MAX) throw new Error('Bag is full');
+        let hereArea = this.hereArea();
+        let hereShop = this.shopMap.get(hereArea);
+
+        let item = hereShop.itemList.find((i) => i.id == id);
+        if (!item) throw new Error('Item not found');
+
+        // 扣錢
+        let price = this.itemPrice(item.type);
+        if (this.role.money < price) throw new Error('Money not enough');
+        this.role.money -= price;
+
+        // 領道具
+        this.role.itemList.push(item);
+
+        // 從商店中移除
+        hereShop.itemList.splice(hereShop.itemList.findIndex((i) => i.id = id), 1);
+    }
+
+    hereArea() {
+        let point = this.role.point;
+        for (let area of this.areaList)
+            if (area.getAllPoints().findIndex((p) => p.same(point)) > -1) return area;
+    }
+
+    refreshShop(shop) {
+        shop.itemList.splice(0, shop.itemList.length);
+        for (let i = 0; i < SHOP_ITEM_MAX; i++) {
+            let randomType = Math.floor(Math.random() * 5);
+            shop.itemList.push(this.newItem(randomType));
+        }
+    }
+
+    refreshShopByMoney() {
+        if (this.role.money < SHOP_REFRESH_PRICE) throw new Error('Money not enough');
+        this.role.money -= SHOP_REFRESH_PRICE;
+
+        let hereShop = this.shopMap.get(this.hereArea());
+        this.refreshShop(hereShop);
     }
 
     /**
@@ -382,6 +452,26 @@ export default class GameService {
             this.role.itemList.push(this.newItem(itemType));
     }
 
+    itemPrice(type) {
+        switch (type) {
+            case 0: return 20;
+            case 1: return 20;
+            case 2: return 20;
+            case 3: return 20;
+            case 4: return 1000;
+        }
+    }
+
+    itemRecyclePrice(type) {
+        switch (type) {
+            case 0: return 5;
+            case 1: return 5;
+            case 2: return 5;
+            case 3: return 5;
+            case 4: return 1000;
+        }
+    }
+
     loop() {
         let nowTime = this.nowTime = Date.now();
         let monsterList = this.monsterList;
@@ -414,6 +504,14 @@ export default class GameService {
         }
         for (let i = 0; i < expire.length; i++)
             this.newRandomQuest();
+
+        // Shop refresh
+        if (this.shopRefreshTimer < this.nowTime) {
+            for (let shop of this.shopList) {
+                this.refreshShop(shop);
+            }
+            this.shopRefreshTimer = this.nowTime + SHOP_REFRESH_PERIOD;
+        }
     }
 
     start() {

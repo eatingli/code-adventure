@@ -86,6 +86,44 @@ app.get('/submit', function (req, res) {
     }
 })
 
+app.get('/buy', function (req, res) {
+    let id = Number(req.query.id);
+    try {
+        gameService.buyItem(id);
+        return res.send(`Buy Item Successs`);
+    } catch (e) {
+        return res.status(405).send(e.message);
+    }
+})
+
+app.get('/sell', function (req, res) {
+    let id = Number(req.query.id);
+    try {
+        gameService.sellItem(id);
+        return res.send(`Sell Item Successs`);
+    } catch (e) {
+        return res.status(405).send(e.message);
+    }
+})
+
+app.get('/shop', function (req, res) {
+    try {
+        let hereShop = gameService.shopMap.get(gameService.hereArea());
+        return res.send(JSON.stringify(hereShop.itemList));
+    } catch (e) {
+        return res.status(405).send(e.message);
+    }
+})
+
+app.get('/refreshShop', function (req, res) {
+    try {
+        gameService.refreshShopByMoney();
+        return res.send(`Refresh Shop Successs`);
+    } catch (e) {
+        return res.status(405).send(e.message);
+    }
+})
+
 
 app.listen(3000, function () {
     console.log('Example app listening on port 3000!');
@@ -95,7 +133,7 @@ app.listen(3000, function () {
 // Test print game world
 setInterval(() => {
 
-    // return;
+    return;
     let points = [];
     for (let area of gameService.areaList)
         points = points.concat(area.getAllPoints())

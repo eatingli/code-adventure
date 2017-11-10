@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Shop</title>
+</head>
+
+<body>
+    <button onclick="refreshShop()">Refresh</button>
+    <table>
+        <thead>
+            <tr>
+                <td>Id</td>
+                <td>Type</td>
+                <td>Buy</td>
+            </tr>
+        </thead>
+        <tbody id="shop_list">
+        </tbody>
+    </table>
+    <table>
+        <thead>
+            <tr>
+                <td>Id</td>
+                <td>Type</td>
+                <td>Sell</td>
+            </tr>
+        </thead>
+        <tbody id="bag_list">
+        </tbody>
+    </table>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+    <script>
+        function refreshShop() {
+            $.get(`/refreshShop`, function (data) {
+                console.log(data);
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
+            });
+        }
+
+        function sellItem(id) {
+            $.get(`/sell?id=${id}`, function (data) {
+                console.log(data);
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
+            });
+        }
+
+        function buyItem(id) {
+            $.get(`/buy?id=${id}`, function (data) {
+                console.log(data);
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
+            });
+        }
+
+        // Shop List
+        for (let i = 0; i < 5; i++) {
+            let tr = $("<tr></tr>");
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            $("#shop_list").append(tr);
+        }
+        // Bag List
+        for (let i = 0; i < 50; i++) {
+            let tr = $("<tr></tr>");
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            tr.append(`<td></td>`);
+            $("#bag_list").append(tr);
+        }
+
+        setInterval(function () {
+
+            // Get Shop
+            $.getJSON('/shop', function (items) {
+                for (let i = 0; i < 5; i++) {
+                    let tr = $('#shop_list').children().eq(i);
+                    if (i >= items.length) {
+                        tr.children().eq(0).text(``);
+                        tr.children().eq(1).text(``);
+                        tr.children().eq(2).html(``);
+                        continue;
+                    }
+                    let item = items[i];
+                    if (item.id.toString() === tr.children().eq(0).text()) continue;
+                    tr.children().eq(0).text(`${item.id}`);
+                    tr.children().eq(1).text(`${item.type}`);
+                    tr.children().eq(2).html(`<td><button onClick="buyItem(${item.id})">Buy</button></td>`);
+
+                }
+
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
+            });
+
+            // Get Bag
+            $.getJSON('/self', function (self) {
+                for (let i = 0; i < 50; i++) {
+                    let tr = $('#bag_list').children().eq(i);
+                    if (i >= self.bag.length) {
+                        tr.children().eq(0).text(``);
+                        tr.children().eq(1).text(``);
+                        tr.children().eq(2).html(``);
+                        continue;
+                    }
+                    let item = self.bag[i];
+                    if (item.id.toString() === tr.children().eq(0).text()) continue;
+                    tr.children().eq(0).text(`${item.id}`);
+                    tr.children().eq(1).text(`${item.type}`);
+                    tr.children().eq(2).html(`<td><button onClick="sellItem(${item.id})">Sell</button></td>`);
+
+                }
+
+            }).fail((jqxhr, textStatus, error) => {
+                console.error(jqxhr.responseText);
+            });
+        }, 400)
+    </script>
+</body>
+
+</html>
