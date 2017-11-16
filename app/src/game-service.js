@@ -233,7 +233,7 @@ export default class GameService {
         this.role.itemList.push(item);
 
         // 從商店中移除
-        hereShop.itemList.splice(hereShop.itemList.findIndex((i) => i.id = id), 1);
+        hereShop.itemList.splice(hereShop.itemList.findIndex((i) => i.id == id), 1);
     }
 
     hereArea() {
