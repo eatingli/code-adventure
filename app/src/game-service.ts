@@ -656,10 +656,10 @@ export default class GameService {
         if (this.resourceList.length >= RESOURCE_AMOUNT_MAX * 2) this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
 
         // New Monster
-        // if (nowTime > this.monsterTimer) {
-        //     this.newRandomMonster();
-        //     this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
-        // }
+        if (nowTime > this.monsterTimer) {
+            this.newRandomMonster();
+            this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
+        }
 
         // New Resource
         // if (nowTime > this.resourceTimer) {

@@ -125,6 +125,20 @@ app.get('/refreshShop', function (req, res) {
     }
 })
 
+app.get('/map', function (req, res) {
+    try {
+        let obj = {
+            areaList: gameService.areaList,
+            role: gameService.role,
+            resourceList: gameService.resourceList,
+            monsterList: gameService.monsterList
+        };
+        return res.send(JSON.stringify(obj));
+    } catch (e) {
+        return res.status(405).send(e.message);
+    }
+})
+
 
 app.listen(3000, function () {
     console.log('Example app listening on port 3000!');
@@ -135,38 +149,4 @@ setInterval(() => {
 
     let temp = gameService.resourceList.filter((r) => r.type > 600 && r.type < 700);
     if (temp.length > 0) console.log(temp)
-
-    // console.log('test');
-    if (2 > 1) return;
-    let points: Array<Game.Point> = [];
-    for (let area of gameService.areaList)
-        points = points.concat(area.getAllPoints())
-
-    let maxX = 0;
-    let maxY = 0;
-    for (let p of points) {
-        if (p.x > maxX) maxX = p.x;
-        if (p.y > maxY) maxY = p.y;
-    }
-
-    for (let y = 0; y <= maxY; y++) {
-        let txt = '';
-        for (let x = 0; x <= maxX; x++) {
-            let point = new Game.Point(x, y);
-            if (points.find((p) => p.same(point))) {
-                if (point.same(gameService.role.point))
-                    txt = txt + 'Ｏ';
-                else if (gameService.monsterList.find((m) => m.point.same(point)))
-                    txt = txt + 'Ｘ';
-                else if (gameService.resourceList.find((i) => i.point.same(point)))
-                    txt = txt + '＃';
-
-                else
-                    txt = txt + '　';
-            } else
-                txt = txt + '　';
-        }
-        console.log(txt);
-    }
-    console.log('-------------------');
 }, 100)
