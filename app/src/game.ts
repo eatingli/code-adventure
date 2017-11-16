@@ -79,12 +79,12 @@ export class Area {
 
     includeRectList: Array<Rect>;
     excludeRectList: Array<Rect>;
+    private allPoints: Array<Point>;
 
     constructor(includeRectList: Array<Rect>, excludeRectList: Array<Rect>) {
         this.includeRectList = includeRectList;
         this.excludeRectList = excludeRectList;
-        // 檢查合理性
-        // allPoints 應該要是固定的....
+        this.countAllPoint();
     }
 
     /**
@@ -97,10 +97,7 @@ export class Area {
         if (inc.length > 0) return true;
     }
 
-    /**
-     * 
-     */
-    getAllPoints(): Array<Point> {
+    private countAllPoint() {
         let points: Array<Point> = [];
 
         // Add include rect
@@ -128,7 +125,14 @@ export class Area {
             i1++;
         }
 
-        return points;
+        this.allPoints = points;
+    }
+
+    /**
+     * 
+     */
+    getAllPoints(): Array<Point> {
+        return this.allPoints.map((p) => p);
     }
 }
 
@@ -163,6 +167,7 @@ export class RoleValues {
 
 export class Role {
 
+    id: number;
     point: Point;
     values: RoleValues;
     itemList: Array<Item>;
@@ -172,7 +177,8 @@ export class Role {
     /**
      * 
      */
-    constructor(point: Point, values: RoleValues) {
+    constructor(id: number, point: Point, values: RoleValues) {
+        this.id = id;
         this.point = point;
         this.values = values;
         this.itemList = [];
@@ -196,11 +202,13 @@ export class MonsterValues {
 
 export class Monster {
 
+    id: number;
     point: Point;
     type: number;
     values: MonsterValues;
 
-    constructor(point: Point, type: number, values: MonsterValues) {
+    constructor(id: number, point: Point, type: number, values: MonsterValues) {
+        this.id = id;
         this.point = point;
         this.type = type;
         this.values = values;
@@ -209,11 +217,14 @@ export class Monster {
 
 export class Resource {
 
+    id: number;
     point: Point;
     type: number;
     stock: number;
 
-    constructor(point: Point, type: number, stock: number) {
+    constructor(id: number, point: Point, type: number, stock: number) {
+        if (stock < 1) throw new Error('new Resource() stock amount error');
+        this.id = id;
         this.point = point;
         this.type = type;
         this.stock = stock;
@@ -235,6 +246,19 @@ export class World {
      */
     isPointInWorld(point: Point): boolean {
         return point.x >= 0 && point.y >= 0 && point.x < this.width && point.y < this.height;
+    }
+
+    /**
+     * 
+     */
+    getAllPoints(): Array<Point> {
+        let points: Array<Point> = [];
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                points.push(new Point(x, y));
+            }
+        }
+        return points;
     }
 }
 

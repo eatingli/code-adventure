@@ -1,3 +1,4 @@
+require('source-map-support').install()
 import * as path from 'path'
 import * as express from 'express'
 import * as Game from './game.js'
@@ -129,11 +130,14 @@ app.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
 
-
 // Test print game world
 setInterval(() => {
 
-    // if (2 > 1) return;
+    let temp = gameService.resourceList.filter((r) => r.type > 600 && r.type < 700);
+    if (temp.length > 0) console.log(temp)
+
+    // console.log('test');
+    if (2 > 1) return;
     let points: Array<Game.Point> = [];
     for (let area of gameService.areaList)
         points = points.concat(area.getAllPoints())
@@ -165,4 +169,4 @@ setInterval(() => {
         console.log(txt);
     }
     console.log('-------------------');
-}, 200)
+}, 100)

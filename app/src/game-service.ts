@@ -18,63 +18,90 @@ import {
 // Const
 const MONSTER_BORN_PERIOD = 1000;
 const MONSTER_AMOUNT_MAX = 6;
+// Resource
 const RESOURCE_APPEAR_PERIOD = 1000;
 const RESOURCE_AMOUNT_MAX = 6;
+const FRUIT_GEN_MAX = 50;
+const ANIMAL_STOCK_MAX = 10;
+const PLANT_GEN_PERIOD = 1000;
+const PLANT_GEN_MAX = 15;
+const TREE_GEN_PERIOD = 1000;
+const TREE_GEN_MAX = 5;
+const MINE_GEN_MAX = 7;
+const MINE_GEN_AMOUNT = 6;
+const TREASURE_GEN_MAX = 2;
+
 const SHOP_REFRESH_PERIOD = 10000;
 const SHOP_ITEM_MAX = 5;
 const SHOP_REFRESH_PRICE = 1500;
+const SEASON_LONG = 2000;
 
 const QUEST_MAX = 10;
 const BAG_SIZE_MAX = 50;
-const AREA_AMOUNT = 4;
+const AREA_AMOUNT = 7;
+
+const ANIMAL_INIT_STOCK = 2;
+
+const MINES = [{ type: 501, stockMax: 3 }, { type: 502, stockMax: 3 }, { type: 503, stockMax: 3 }, { type: 504, stockMax: 2 }, { type: 505, stockMax: 2 }, { type: 506, stockMax: 2 }];
 
 export default class GameService {
 
     nowTime: number;
     world: World;
+    season: number; // 0~3：春、夏、秋、冬    
     role: Role;
 
     monsterList: Array<Monster>;
     resourceList: Array<Resource>;
     areaList: Array<Area>;
     questList: Array<Quest>;
+    treeAreaMap: Map<Area, number> = new Map();
 
     shopList: Array<Shop>;
     shopMap: Map<Area, Shop>;
 
-    itemIdCounter: number;
-    questIdConuter: number;
+    itemIdCounter: number = 0;
+    questIdConuter: number = 0;
+    monsterIdCounter: number = 0;
+    resourceIdCounter: number = 0;
 
-    monsterTimer: number;
-    resourceTimer: number;
-    shopRefreshTimer: number;
+    seasonTimer: number = Date.now();
+    monsterTimer: number = Date.now();
+    resourceTimer: number = Date.now();
+    shopRefreshTimer: number = Date.now(); //+ SHOP_REFRESH_PERIOD;
+    plantGenTimer: number = Date.now();
+    treeGenTimer: number = Date.now();
 
     constructor() {
         let nowTime = this.nowTime = Date.now();
-        // let world = new World(GameConfig.WORLD_WIDTH, GameConfig.WORLD_HEIGHT);
-        let world = this.world = new World(10, 10);
-        this.role = new Role(new Point(5, 5), new RoleValues(999999, 999999, 99));
+        this.world = new World(GameConfig.WORLD_WIDTH, GameConfig.WORLD_HEIGHT);
+        this.season = 0;
+        this.role = new Role(0, new Point(5, 5), new RoleValues(999999, 999999, 99));
         this.monsterList = [];
         this.resourceList = [];
 
-        let area1 = new Area([new Rect(0, 0, 5, 5)], []);
-        let area2 = new Area([new Rect(5, 0, 5, 5)], []);
-        let area3 = new Area([new Rect(0, 5, 5, 5)], []);
-        let area4 = new Area([new Rect(5, 5, 5, 5)], []);
-        this.areaList = [area1, area2, area3, area4];
+        let area0 = new Area([new Rect(0, 22, 34, 10)], [new Rect(20, 22, 14, 1)]);
+        let area1 = new Area([new Rect(0, 12, 20, 10)], []);
+        let area2 = new Area([new Rect(0, 0, 17, 12)], []);
+        let area3 = new Area([new Rect(34, 12, 23, 20)], []);
+        let area4 = new Area([new Rect(17, 0, 17, 12)], []);
+        let area5 = new Area([new Rect(34, 0, 23, 12)], []);
+        let area6 = new Area([new Rect(20, 12, 14, 11)], []);
+        this.areaList = [area0, area1, area2, area3, area4, area5, area6];
         this.questList = [];
+
+        this.treeAreaMap.set(area0, 401);
+        this.treeAreaMap.set(area1, 402);
+        this.treeAreaMap.set(area2, 403);
+        this.treeAreaMap.set(area3, 404);
+        this.treeAreaMap.set(area4, 405);
+        this.treeAreaMap.set(area5, 406);
+        this.treeAreaMap.set(area6, 407);
 
         this.shopList = [];
         for (let i = 0; i < AREA_AMOUNT; i++) this.shopList.push(new Shop([]));
         this.shopMap = new Map();
         for (let i = 0; i < AREA_AMOUNT; i++) this.shopMap.set(this.areaList[i], this.shopList[i]);
-
-        this.itemIdCounter = 0;
-        this.questIdConuter = 0;
-
-        this.monsterTimer = Date.now();
-        this.resourceTimer = Date.now();
-        this.shopRefreshTimer = Date.now(); //+ SHOP_REFRESH_PERIOD;
 
         // 檢查 Area 數量
         if (this.areaList.length != AREA_AMOUNT) throw new Error('Area Amount Error');
@@ -90,10 +117,11 @@ export default class GameService {
                 }
             }
         }
+
         // 檢查 Area 涵蓋整張地圖
         let total = 0;
         for (let area of this.areaList) total += area.getAllPoints().length;
-        if (total != world.height * world.height) throw new Error('Area Cover Error');
+        if (total != this.world.width * this.world.height) throw new Error('Area Cover Error');
 
         // test
         this.role.money = 50000;
@@ -310,7 +338,7 @@ export default class GameService {
         }
     }
 
-    usedPoints() {
+    private usedPoints() {
         let usedPoints: Array<Point> = [];
         usedPoints = usedPoints.concat(this.monsterList.map((m) => m.point));
         usedPoints = usedPoints.concat(this.resourceList.map((i) => i.point));
@@ -332,13 +360,47 @@ export default class GameService {
     /**
      * Get random point 
      */
-    static randomPoint(points: Array<Point>) {
-        if (points.length > 0) {
-            let index = Math.floor(Math.random() * points.length)
-            return points[index];
+    static randomArray(array: Array<any>) {
+        if (array.length > 0) {
+            let index = Math.floor(Math.random() * array.length)
+            return array[index];
         } else {
             return null;
         }
+    }
+
+    static randomRange(min: number, max: number) {
+        return Math.floor(min + Math.random() * (max - min + 1))
+    }
+
+    /**
+     * 一定機率回傳 true 
+     */
+    static probability(rate: number): boolean {
+        if (rate < 0 || rate > 1) throw new Error('probability() rate out of range');
+        return Math.random() < rate;
+    }
+
+    static shuffle(array: Array<any>) {
+        let currentIndex = array.length, temporaryValue, randomIndex;
+
+        // clone
+        array = array.map((a) => a);
+
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+
+        return array;
     }
 
     newRandomQuest() {
@@ -363,7 +425,7 @@ export default class GameService {
             // Available Point: 只要沒有怪物都行
             let availablePoints = GameService.filterPoints(area.getAllPoints(), this.monsterList.map((monster) => monster.point));
             if (availablePoints.length < 1) continue;
-            let p = GameService.randomPoint(availablePoints);
+            let p = GameService.randomArray(availablePoints);
 
             // 如果該位置有資源，則刪除掉
             let r = this.resourceList.findIndex((r) => r.point.same(p));
@@ -371,7 +433,7 @@ export default class GameService {
 
             // 產生該區域特色怪物
             let randomType = Math.floor(Math.random() * 5);
-            let newMonster = new Monster(p, randomType, new MonsterValues(200, 200, 15));
+            let newMonster = new Monster(this.monsterIdCounter++, p, randomType, new MonsterValues(200, 200, 15));
             this.monsterList.push(newMonster);
         }
     }
@@ -389,11 +451,11 @@ export default class GameService {
             availablePoints = GameService.filterPoints(availablePoints, this.monsterList.map((monster) => monster.point));
             availablePoints = GameService.filterPoints(availablePoints, this.resourceList.map((monster) => monster.point));
             if (availablePoints.length < 1) continue;
-            let p = GameService.randomPoint(availablePoints);
+            let p = GameService.randomArray(availablePoints);
 
             // 產生資源
             let randomType = Math.floor(Math.random() * 5);
-            let newResource = new Resource(p, randomType, 3);
+            let newResource = new Resource(this.resourceIdCounter++, p, randomType, 3);
             this.resourceList.push(newResource);
 
         }
@@ -470,6 +532,7 @@ export default class GameService {
             case 2: return 20;
             case 3: return 20;
             case 4: return 1000;
+            default: return NaN;
         }
     }
 
@@ -480,36 +543,159 @@ export default class GameService {
             case 2: return 5;
             case 3: return 5;
             case 4: return 1000;
+            default: return NaN;
         }
     }
 
     loop() {
         let nowTime = this.nowTime = Date.now();
-        let monsterList = this.monsterList;
-        let resourceList = this.resourceList;
-        let areaList = this.areaList;
-        let questList = this.questList;
 
-        // Check Amount
-        if (monsterList.length >= MONSTER_AMOUNT_MAX * 2) this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
-        if (resourceList.length >= RESOURCE_AMOUNT_MAX * 2) this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
+        // Season Change (之後改用event...)
+        if (nowTime - this.seasonTimer > SEASON_LONG) {
+            this.seasonTimer += SEASON_LONG;
+            this.season = (this.season + 1) % 4;
 
-        // 區域必須有獨立 timer 和 counter
+            // 動物：季節增值
+            for (let type of [101, 102, 103, 104, 105, 106]) {
+                let animal = this.resourceList.find((r) => r.type == type);
+                if (!animal) continue;
+                let stock = animal.stock * 2;
+                animal.stock = (stock > ANIMAL_STOCK_MAX) ? ANIMAL_STOCK_MAX : stock;
+            }
 
-        // New Monster
-        if (nowTime > this.monsterTimer) {
-            this.newRandomMonster();
-            this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
+            // 動物：在家區域補充各種類的動物
+            if (this.season == 0) { // 春季(之後建立類別和常數)
+                let homeArea = this.areaList[0];
+                for (let type of [101, 102, 103, 104, 105, 106]) {
+                    if (this.resourceList.findIndex((r) => r.type == type) > -1) continue;
+                    let availablePoints = GameService.filterPoints(homeArea.getAllPoints(), this.usedPoints());
+                    let p = GameService.randomArray(availablePoints);
+                    let newAnimal = new Resource(this.resourceIdCounter++, p, type, ANIMAL_INIT_STOCK);
+                    this.resourceList.push(newAnimal);
+                }
+            }
+
+            // 果子：清掉別季的果子
+            for (let type of [201, 202, 203, 204, 205, 206, 207, 208]) {
+                let i;
+                while ((i = this.resourceList.findIndex((r) => r.type == type)) > -1) this.resourceList.splice(i, 1);
+            }
+
+            // 果子：產生當季的果子
+            for (let i = 0; i < FRUIT_GEN_MAX; i++) {
+                let availablePoints = GameService.filterPoints(this.world.getAllPoints(), this.usedPoints());
+                if (availablePoints.length > 0) {
+                    let p = GameService.randomArray(availablePoints);
+                    let newFruit;
+                    switch (this.season) {
+                        case 0:
+                            if (GameService.probability(0.5))
+                                newFruit = new Resource(this.resourceIdCounter++, p, 201, GameService.randomRange(2, 5));
+                            else
+                                newFruit = new Resource(this.resourceIdCounter++, p, 202, GameService.randomRange(1, 3));
+                            break;
+                        case 1:
+                            if (GameService.probability(0.5))
+                                newFruit = new Resource(this.resourceIdCounter++, p, 203, GameService.randomRange(2, 5));
+                            else
+                                newFruit = new Resource(this.resourceIdCounter++, p, 204, GameService.randomRange(1, 3));
+                            break;
+                        case 2:
+                            if (GameService.probability(0.5))
+                                newFruit = new Resource(this.resourceIdCounter++, p, 205, GameService.randomRange(2, 5));
+                            else
+                                newFruit = new Resource(this.resourceIdCounter++, p, 206, GameService.randomRange(1, 3));
+                            break;
+                        case 3:
+                            if (GameService.probability(0.5))
+                                newFruit = new Resource(this.resourceIdCounter++, p, 207, GameService.randomRange(2, 5));
+                            else
+                                newFruit = new Resource(this.resourceIdCounter++, p, 208, GameService.randomRange(1, 3));
+                            break;
+                    }
+                    this.resourceList.push(newFruit);
+                }
+            }
+
+            // 礦石：冬季時家區域外出現
+            if (this.season == 3) {
+                // 產生多顆礦石
+                for (let i = 0; i < MINE_GEN_AMOUNT; i++) {
+
+                    // 檢查未滿的礦石種類
+                    let mines = MINES.filter((mine) => (this.resourceList.filter((r) => r.type == mine.type).length < MINE_GEN_MAX));
+                    if (mines.length == 0) break;
+
+                    // Available Point
+                    let availablePoints = GameService.filterPoints(this.world.getAllPoints(), this.usedPoints());
+                    availablePoints = GameService.filterPoints(availablePoints, this.areaList[0].getAllPoints());
+                    if (availablePoints.length == 0) break;
+
+                    // New Mine                    
+                    let p = GameService.randomArray(availablePoints);
+                    let mine = GameService.randomArray(mines);
+                    let newMine = new Resource(this.resourceIdCounter++, p, mine.type, GameService.randomRange(1, mine.stockMax));
+                    this.resourceList.push(newMine);
+                }
+            }
+
+            // 寶物：夏季出現
+            if (this.season == 1 && this.resourceList.filter((r) => r.type == 601).length < TREASURE_GEN_MAX) {
+                // Available Point
+                let availablePoints = GameService.filterPoints(this.world.getAllPoints(), this.usedPoints());
+                if (availablePoints.length > 0) {
+                    let p = GameService.randomArray(availablePoints);
+                    let newTreasure = new Resource(this.resourceIdCounter++, p, 601, 1);
+                    this.resourceList.push(newTreasure);
+                }
+            }
         }
 
+        // Check Amount
+        if (this.monsterList.length >= MONSTER_AMOUNT_MAX * 2) this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
+        if (this.resourceList.length >= RESOURCE_AMOUNT_MAX * 2) this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
+
+        // New Monster
+        // if (nowTime > this.monsterTimer) {
+        //     this.newRandomMonster();
+        //     this.monsterTimer = nowTime + MONSTER_BORN_PERIOD;
+        // }
+
         // New Resource
-        if (nowTime > this.resourceTimer) {
-            this.newRandomResource();
-            this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
+        // if (nowTime > this.resourceTimer) {
+        //     this.newRandomResource();
+        //     this.resourceTimer = nowTime + RESOURCE_APPEAR_PERIOD;
+        // }
+
+        // 產生草
+        if (nowTime - this.plantGenTimer > PLANT_GEN_PERIOD) {
+            for (let type of [301, 302, 303, 304, 305]) {
+                if (this.resourceList.filter((r) => r.type == type).length >= PLANT_GEN_MAX) continue;
+                let availablePoints = GameService.filterPoints(this.world.getAllPoints(), this.usedPoints());
+                if (availablePoints.length == 0) break;
+                let p = GameService.randomArray(availablePoints);
+                let newPlant = new Resource(this.resourceIdCounter++, p, type, GameService.randomRange(1, 4))
+                this.resourceList.push(newPlant);
+            }
+            this.plantGenTimer += PLANT_GEN_PERIOD;
+        }
+
+        // 產生樹
+        if (nowTime - this.treeGenTimer > TREE_GEN_PERIOD) {
+            for (let area of this.areaList) {
+                let type = this.treeAreaMap.get(area);
+                if (this.resourceList.filter((r) => r.type == type).length >= TREE_GEN_MAX) continue;
+                let availablePoints = GameService.filterPoints(area.getAllPoints(), this.usedPoints());
+                if (availablePoints.length == 0) continue;
+                let p = GameService.randomArray(availablePoints);
+                let newTree = new Resource(this.resourceIdCounter++, p, type, GameService.randomRange(2, 4))
+                this.resourceList.push(newTree);
+            }
+            this.treeGenTimer += TREE_GEN_PERIOD;
         }
 
         // Update expire quest
-        let expire = this.questList.filter((quest) => quest.expiration < this.nowTime);
+        let expire = this.questList.filter((quest) => quest.expiration < nowTime);
         for (let quest of expire) {
             this.questList.splice(this.questList.indexOf(quest), 1);
         }
@@ -517,11 +703,11 @@ export default class GameService {
             this.newRandomQuest();
 
         // Shop refresh
-        if (this.shopRefreshTimer < this.nowTime) {
+        if (this.shopRefreshTimer < nowTime) {
             for (let shop of this.shopList) {
                 this.refreshShop(shop);
             }
-            this.shopRefreshTimer = this.nowTime + SHOP_REFRESH_PERIOD;
+            this.shopRefreshTimer = nowTime + SHOP_REFRESH_PERIOD;
         }
     }
 
