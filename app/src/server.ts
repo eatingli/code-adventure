@@ -1,5 +1,5 @@
-import path from 'path'
-import express from 'express'
+import * as path from 'path'
+import * as express from 'express'
 import * as Game from './game.js'
 import GameService from './game-service.js'
 
@@ -133,8 +133,8 @@ app.listen(3000, function () {
 // Test print game world
 setInterval(() => {
 
-    return;
-    let points = [];
+    // if (2 > 1) return;
+    let points: Array<Game.Point> = [];
     for (let area of gameService.areaList)
         points = points.concat(area.getAllPoints())
 

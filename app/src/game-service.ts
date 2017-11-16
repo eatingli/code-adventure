@@ -30,30 +30,44 @@ const AREA_AMOUNT = 4;
 
 export default class GameService {
 
+    nowTime: number;
+    world: World;
+    role: Role;
+
+    monsterList: Array<Monster>;
+    resourceList: Array<Resource>;
+    areaList: Array<Area>;
+    questList: Array<Quest>;
+
+    shopList: Array<Shop>;
+    shopMap: Map<Area, Shop>;
+
+    itemIdCounter: number;
+    questIdConuter: number;
+
+    monsterTimer: number;
+    resourceTimer: number;
+    shopRefreshTimer: number;
+
     constructor() {
         let nowTime = this.nowTime = Date.now();
         // let world = new World(GameConfig.WORLD_WIDTH, GameConfig.WORLD_HEIGHT);
         let world = this.world = new World(10, 10);
         this.role = new Role(new Point(5, 5), new RoleValues(999999, 999999, 99));
-        /** @type {Array<Monster>} */
         this.monsterList = [];
-        /** @type {Array<Resource>} */
         this.resourceList = [];
 
         let area1 = new Area([new Rect(0, 0, 5, 5)], []);
         let area2 = new Area([new Rect(5, 0, 5, 5)], []);
         let area3 = new Area([new Rect(0, 5, 5, 5)], []);
         let area4 = new Area([new Rect(5, 5, 5, 5)], []);
-        /** @type {Array<Area>} */
-        let areaList = this.areaList = [area1, area2, area3, area4];
-        /** @type {Array<Quest>} */
-        let questList = this.questList = [];
-        /** @type {Array<Shop>} */
-        let shopList = this.shopList = [];
-        for (let i = 0; i < AREA_AMOUNT; i++) shopList.push(new Shop([]));
-        /** @type {Map<Area, Shop>} */
-        let shopMap = this.shopMap = new Map();
-        for (let i = 0; i < AREA_AMOUNT; i++) shopMap.set(areaList[i], shopList[i]);
+        this.areaList = [area1, area2, area3, area4];
+        this.questList = [];
+
+        this.shopList = [];
+        for (let i = 0; i < AREA_AMOUNT; i++) this.shopList.push(new Shop([]));
+        this.shopMap = new Map();
+        for (let i = 0; i < AREA_AMOUNT; i++) this.shopMap.set(this.areaList[i], this.shopList[i]);
 
         this.itemIdCounter = 0;
         this.questIdConuter = 0;
@@ -65,11 +79,11 @@ export default class GameService {
         // 檢查 Area 數量
         if (this.areaList.length != AREA_AMOUNT) throw new Error('Area Amount Error');
         // 檢查 Area 不重疊
-        if (areaList.length > 1) {
-            for (let i = 0; i < areaList.length; i++) {
-                for (let j = i + 1; j < areaList.length; j++) {
-                    for (let p1 of areaList[i].getAllPoints()) {
-                        for (let p2 of areaList[j].getAllPoints()) {
+        if (this.areaList.length > 1) {
+            for (let i = 0; i < this.areaList.length; i++) {
+                for (let j = i + 1; j < this.areaList.length; j++) {
+                    for (let p1 of this.areaList[i].getAllPoints()) {
+                        for (let p2 of this.areaList[j].getAllPoints()) {
                             if (p1.same(p2)) throw new Error('Area Cover Error');
                         }
                     }
@@ -78,7 +92,7 @@ export default class GameService {
         }
         // 檢查 Area 涵蓋整張地圖
         let total = 0;
-        for (let area of areaList) total += area.getAllPoints().length;
+        for (let area of this.areaList) total += area.getAllPoints().length;
         if (total != world.height * world.height) throw new Error('Area Cover Error');
 
         // test
@@ -97,7 +111,7 @@ export default class GameService {
         return this.nowTime >= this.role.values.actionTimer;
     }
 
-    move(x, y) {
+    move(x: number, y: number) {
         let dis = Math.abs(x) + Math.abs(y);
         if (dis > 1) throw new Error('Move too far');
         if (dis <= 0) throw new Error('Move too short');
@@ -167,7 +181,7 @@ export default class GameService {
         this.resourceReward(hereResource.type);
     }
 
-    submit(questId) {
+    submit(questId: number) {
         let questList = this.questList;
         let role = this.role;
         let quest = questList.find((quest) => quest.id == questId);
@@ -176,7 +190,7 @@ export default class GameService {
         if (role.itemList.length - quest.requirements.length + quest.rewards.length > BAG_SIZE_MAX) throw new Error('Bag out of size');
 
         // Check role has enough items
-        let temp = [];
+        let temp: Array<Item> = [];
         let check = true;
         outer:
         for (let need of quest.requirements) {
@@ -208,14 +222,14 @@ export default class GameService {
         this.newRandomQuest();
     }
 
-    sellItem(id) {
+    sellItem(id: number) {
         let item = this.role.itemList.find((i) => i.id == id);
         if (!item) throw new Error('Item not found');
         this.role.money += this.itemRecyclePrice(item.type);
         this.role.itemList.splice(this.role.itemList.findIndex((i) => i.id == id), 1);
     }
 
-    buyItem(id) {
+    buyItem(id: number) {
 
         if (this.role.itemList.length >= BAG_SIZE_MAX) throw new Error('Bag is full');
         let hereArea = this.hereArea();
@@ -242,7 +256,7 @@ export default class GameService {
             if (area.getAllPoints().findIndex((p) => p.same(point)) > -1) return area;
     }
 
-    refreshShop(shop) {
+    refreshShop(shop: Shop) {
         shop.itemList.splice(0, shop.itemList.length);
         for (let i = 0; i < SHOP_ITEM_MAX; i++) {
             let randomType = Math.floor(Math.random() * 5);
@@ -266,7 +280,7 @@ export default class GameService {
         let height = this.world.height;
 
         // Used points: point with monster or item 
-        let usedPoints = [];
+        let usedPoints: Array<Point> = [];
         usedPoints = usedPoints.concat(this.monsterList.map((m) => m.point));
         usedPoints = usedPoints.concat(this.resourceList.map((i) => i.point));
 
@@ -297,7 +311,7 @@ export default class GameService {
     }
 
     usedPoints() {
-        let usedPoints = [];
+        let usedPoints: Array<Point> = [];
         usedPoints = usedPoints.concat(this.monsterList.map((m) => m.point));
         usedPoints = usedPoints.concat(this.resourceList.map((i) => i.point));
         return usedPoints;
@@ -305,10 +319,8 @@ export default class GameService {
 
     /**
      * Remove points from other points
-     * @param {Array<Point>} points 
-     * @param {Array<Point>} removePoints 
      */
-    static filterPoints(points, removePoints) {
+    static filterPoints(points: Array<Point>, removePoints: Array<Point>) {
         return points.filter((p1) => {
             for (let p2 of removePoints) {
                 if (p1.same(p2)) return false;
@@ -319,9 +331,8 @@ export default class GameService {
 
     /**
      * Get random point 
-     * @param {*} points 
      */
-    static randomPoint(points) {
+    static randomPoint(points: Array<Point>) {
         if (points.length > 0) {
             let index = Math.floor(Math.random() * points.length)
             return points[index];
@@ -388,11 +399,11 @@ export default class GameService {
         }
     }
 
-    newItem(type) {
+    newItem(type: number) {
         return new Item(this.itemIdCounter++, type)
     }
 
-    monsterReward(type) {
+    monsterReward(type: number) {
         let items = [];
         let money = 0;
         let score = 0;
@@ -439,7 +450,7 @@ export default class GameService {
         this.role.money += money;
     }
 
-    resourceReward(type) {
+    resourceReward(type: number) {
         let itemType = null;
         switch (type) {
             case 0: itemType = 0; break;
@@ -452,7 +463,7 @@ export default class GameService {
             this.role.itemList.push(this.newItem(itemType));
     }
 
-    itemPrice(type) {
+    itemPrice(type: number) {
         switch (type) {
             case 0: return 20;
             case 1: return 20;
@@ -462,7 +473,7 @@ export default class GameService {
         }
     }
 
-    itemRecyclePrice(type) {
+    itemRecyclePrice(type: number) {
         switch (type) {
             case 0: return 5;
             case 1: return 5;

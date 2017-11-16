@@ -1,51 +1,39 @@
-// import fs from 'fs'
 
 export class Point {
 
-    /**
-     * 
-     * @param {Number} x 
-     * @param {Number} y 
-     */
-    constructor(x = 0, y = 0) {
+    x: number;
+    y: number;
+
+    constructor(x: number = 0, y: number = 0) {
         this.x = x;
         this.y = y;
     }
 
     /**
      * 
-     * @param {Number} xDis 
-     * @param {Number} yDis 
-     * @returns {Point} 
      */
-    move(xDis, yDis) {
+    move(xDis: number, yDis: number): Point {
         return new Point(this.x + xDis, this.y + yDis);
     }
 
     /**
      * 
-     * @param {Point} other 
-     * @returns {Number} 
      */
-    lineDistance(other) {
+    lineDistance(other: Point): number {
         return Math.sqrt(Math.pow(this.x - other.x, 2) + Math.pow(this.y - other.y, 2));
     }
 
     /**
      * 
-     * @param {Point} other 
-     * @returns {Number} 
      */
-    latticeDistance(other) {
+    latticeDistance(other: Point): number {
         return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
     }
 
     /**
      * 
-     * @param {Point} other 
-     * @returns {Boolean} 
      */
-    same(other) {
+    same(other: Point): boolean {
         return this.x == other.x && this.y == other.y;
     }
 
@@ -53,14 +41,12 @@ export class Point {
 
 export class Rect {
 
-    /**
-     * 
-     * @param {Number} x 
-     * @param {Number} y 
-     * @param {Number} width 
-     * @param {Number} height 
-     */
-    constructor(x, y, width, height) {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+
+    constructor(x: number, y: number, width: number, height: number) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -70,18 +56,16 @@ export class Rect {
 
     /**
      * 
-     * @param {Point} point 
-     * @returns {Boolean} 
      */
-    isPointInRect(point) {
+    isPointInRect(point: Point): boolean {
         return point.x >= this.x && point.y >= this.y && point.x < this.x + this.width && point.y < this.y + this.height;
     }
 
     /**
-     * @returns {Array<Point>}
+     * 
      */
-    getAllPoints() {
-        let points = [];
+    getAllPoints(): Array<Point> {
+        let points: Array<Point> = [];
         for (let x = this.x; x < this.x + this.width; x++) {
             for (let y = this.y; y < this.y + this.height; y++) {
                 points.push(new Point(x, y));
@@ -93,23 +77,20 @@ export class Rect {
 
 export class Area {
 
-    /**
-     * 
-     * @param {Array<Rect>} includeRectList 
-     * @param {Array<Rect>} excludeRectList
-     */
-    constructor(includeRectList, excludeRectList) {
+    includeRectList: Array<Rect>;
+    excludeRectList: Array<Rect>;
+
+    constructor(includeRectList: Array<Rect>, excludeRectList: Array<Rect>) {
         this.includeRectList = includeRectList;
         this.excludeRectList = excludeRectList;
         // 檢查合理性
+        // allPoints 應該要是固定的....
     }
 
     /**
      * 
-     * @param {Point} point 
-     * @returns {Boolean} 
      */
-    isPointInArea(point) {
+    isPointInArea(point: Point): boolean {
         let exc = this.excludeRectList.filter((rect) => rect.isPointInRect(point))
         if (exc.length > 0) return false;
         let inc = this.includeRectList.filter((rect) => rect.isPointInRect(point))
@@ -117,11 +98,10 @@ export class Area {
     }
 
     /**
-     * @returns {Array<Point>}
+     * 
      */
-    getAllPoints() {
-        /** @type {Array<Point>} */
-        let points = [];
+    getAllPoints(): Array<Point> {
+        let points: Array<Point> = [];
 
         // Add include rect
         for (let rect of this.includeRectList) {
@@ -152,30 +132,21 @@ export class Area {
     }
 }
 
-export class RangeValue {
-
-    /**
-     * 
-     * @param {Number} min
-     * @param {Number} max 
-     * @param {Number} now 
-     */
-    constructor(min, max, now) {
-        this.min = min;
-        this.max = max;
-        this.now = now;
-    }
-}
-
 export class RoleValues {
 
-    /**
-     * 
-     * @param {Number} maxLife 
-     * @param {Number} nowLife 
-     * @param {Number} atk 
-     */
-    constructor(maxLife, nowLife, atk) {
+    maxLife: number;
+    nowLife: number;
+    atk: number;
+
+    actionTimer: number;
+    moveDelay: number;
+    searchDelay: number;
+    collectDelay: number;
+    atkDelay: number;
+
+    searchDistance: number;
+
+    constructor(maxLife: number, nowLife: number, atk: number) {
         this.maxLife = maxLife;
         this.nowLife = nowLife;
         this.atk = atk;
@@ -192,15 +163,18 @@ export class RoleValues {
 
 export class Role {
 
+    point: Point;
+    values: RoleValues;
+    itemList: Array<Item>;
+    money: number;
+    score: number;
+
     /**
      * 
-     * @param {Point} point
-     * @param {RoleValues} values
      */
-    constructor(point, values) {
+    constructor(point: Point, values: RoleValues) {
         this.point = point;
         this.values = values;
-        /** @type {Array<Item>} */
         this.itemList = [];
         this.money = 0;
         this.score = 0;
@@ -209,13 +183,11 @@ export class Role {
 
 export class MonsterValues {
 
-    /**
-     * 
-     * @param {Number} maxLife 
-     * @param {Number} nowLife 
-     * @param {Number} atk 
-     */
-    constructor(maxLife, nowLife, atk) {
+    maxLife: number;
+    nowLife: number;
+    atk: number;
+
+    constructor(maxLife: number, nowLife: number, atk: number) {
         this.maxLife = maxLife;
         this.nowLife = nowLife;
         this.atk = atk;
@@ -224,13 +196,11 @@ export class MonsterValues {
 
 export class Monster {
 
-    /**
-     * 
-     * @param {Point} point 
-     * @param {Number} type
-     * @param {MonsterValues} values
-     */
-    constructor(point, type, values) {
+    point: Point;
+    type: number;
+    values: MonsterValues;
+
+    constructor(point: Point, type: number, values: MonsterValues) {
         this.point = point;
         this.type = type;
         this.values = values;
@@ -239,13 +209,11 @@ export class Monster {
 
 export class Resource {
 
-    /**
-     * 
-     * @param {Point} point 
-     * @param {Number} type
-     * @param {Number} stock
-     */
-    constructor(point, type, stock) {
+    point: Point;
+    type: number;
+    stock: number;
+
+    constructor(point: Point, type: number, stock: number) {
         this.point = point;
         this.type = type;
         this.stock = stock;
@@ -254,32 +222,28 @@ export class Resource {
 
 export class World {
 
-    /**
-     * 
-     * @param {Number} width 
-     * @param {Number} height 
-     */
-    constructor(width, height) {
+    width: number;
+    height: number;
+
+    constructor(width: number, height: number) {
         this.width = width;
         this.height = height;
     }
 
     /**
      * 
-     * @param {Point} point 
-     * @returns {Boolean} 
      */
-    isPointInWorld(point) {
+    isPointInWorld(point: Point): boolean {
         return point.x >= 0 && point.y >= 0 && point.x < this.width && point.y < this.height;
     }
 }
 
 export class Item {
-    /**
-     * @param {Number} id 
-     * @param {Number} type 
-     */
-    constructor(id, type) {
+
+    id: number;
+    type: number;
+
+    constructor(id: number, type: number) {
         this.id = id;
         this.type = type;
     }
@@ -287,16 +251,14 @@ export class Item {
 
 export class Quest {
 
-    /**
-     * 
-     * @param {Number} id 
-     * @param {Number} expiration
-     * @param {Array<Item>} requirements 
-     * @param {Array<Item>} rewards 
-     * @param {Number} money 
-     * @param {Number} score 
-     */
-    constructor(id, expiration, requirements, rewards, money = 0, score = 0) {
+    id: number;
+    expiration: number;
+    requirements: Array<Item>;
+    rewards: Array<Item>;
+    money: number;
+    score: number;
+
+    constructor(id: number, expiration: number, requirements: Array<Item>, rewards: Array<Item>, money: number = 0, score: number = 0) {
         this.id = id;
         this.expiration = expiration
         this.requirements = requirements;
@@ -308,11 +270,9 @@ export class Quest {
 
 export class Shop {
 
-    /**
-     * 
-     * @param {Array<Item>} itemList 
-     */
-    constructor(itemList) {
+    itemList: Array<Item>
+
+    constructor(itemList: Array<Item>) {
         this.itemList = itemList;
     }
 }
