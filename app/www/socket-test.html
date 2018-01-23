@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.slim.js"></script>
+</head>
+
+<body>
+    <script>
+        var socket = io();
+        setInterval(() => {
+            // socket.emit('test', 'hello')
+        }, 1000)
+        socket.on('INIT', function (msg) {
+            console.log('INIT', msg)
+        });
+
+        socket.on('GEN_MONSTER', function (msg) {
+            console.log('GEN_MONSTER', msg)
+        });
+
+        socket.on('GEN_RESOURCE', function (msg) {
+            console.log('GEN_RESOURCE', msg)
+        });
+    </script>
+</body>
+
+</html>
