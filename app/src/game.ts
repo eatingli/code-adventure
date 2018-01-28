@@ -9,30 +9,29 @@ export class Point {
         this.y = y;
     }
 
-    /**
-     * 
-     */
+    /* 回傳移動位移後的新座標 */
     move(xDis: number, yDis: number): Point {
         return new Point(this.x + xDis, this.y + yDis);
     }
 
-    /**
-     * 
-     */
+    /* 直線距離 */
     lineDistance(other: Point): number {
         return Math.sqrt(Math.pow(this.x - other.x, 2) + Math.pow(this.y - other.y, 2));
     }
 
-    /**
-     * 
-     */
+    /* X+Y距離 */
     latticeDistance(other: Point): number {
         return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
     }
 
-    /**
-     * 
-     */
+    /* NxN的距離 */
+    squareDistance(other: Point): number {
+        let disX = Math.abs(this.x - other.y)
+        let disY = Math.abs(this.y - other.y)
+        return Math.max(disX, disY);
+    }
+
+    /* 同座標判斷 */
     same(other: Point): boolean {
         return this.x == other.x && this.y == other.y;
     }
@@ -54,16 +53,12 @@ export class Rect {
         if (width < 1 || height < 1) throw new Error('Rect: Width or Height Error');
     }
 
-    /**
-     * 
-     */
+    /*  */
     isPointInRect(point: Point): boolean {
         return point.x >= this.x && point.y >= this.y && point.x < this.x + this.width && point.y < this.y + this.height;
     }
 
-    /**
-     * 
-     */
+    /*  */
     getAllPoints(): Array<Point> {
         let points: Array<Point> = [];
         for (let x = this.x; x < this.x + this.width; x++) {
@@ -77,27 +72,18 @@ export class Rect {
 
 export class Area {
 
-    includeRectList: Array<Rect>;
-    excludeRectList: Array<Rect>;
+    private includeRectList: Array<Rect>;
+    private excludeRectList: Array<Rect>;
     private allPoints: Array<Point>;
 
     constructor(includeRectList: Array<Rect>, excludeRectList: Array<Rect>) {
         this.includeRectList = includeRectList;
         this.excludeRectList = excludeRectList;
-        this.countAllPoint();
+        this.countAllPoints();
     }
 
-    /**
-     * 
-     */
-    isPointInArea(point: Point): boolean {
-        let exc = this.excludeRectList.filter((rect) => rect.isPointInRect(point))
-        if (exc.length > 0) return false;
-        let inc = this.includeRectList.filter((rect) => rect.isPointInRect(point))
-        if (inc.length > 0) return true;
-    }
-
-    private countAllPoint() {
+    /*  */
+    private countAllPoints() {
         let points: Array<Point> = [];
 
         // Add include rect
@@ -128,17 +114,16 @@ export class Area {
         this.allPoints = points;
     }
 
-    /**
-     * 
-     */
-    getAllPoints(): Array<Point> {
-        return this.allPoints.map((p) => p);
+    /*  */
+    public isPointInArea(point: Point): boolean {
+        let exc = this.excludeRectList.filter((rect) => rect.isPointInRect(point))
+        if (exc.length > 0) return false;
+        let inc = this.includeRectList.filter((rect) => rect.isPointInRect(point))
+        if (inc.length > 0) return true;
+    }
+
+    /*  */
+    public getAllPoints(): Array<Point> {
+        return this.allPoints;
     }
 }
-
-
-
-
-
-
-

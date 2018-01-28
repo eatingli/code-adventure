@@ -12,9 +12,15 @@
 <body>
     <script>
         var socket = io();
+
+
         setInterval(() => {
             // socket.emit('test', 'hello')
-        }, 1000)
+            socket.once('GET_DATA', (data) => {
+                console.log('data:', data)
+            })
+            socket.emit('GET_DATA');
+        }, 50)
         socket.on('INIT', function (msg) {
             console.log('INIT', msg)
         });

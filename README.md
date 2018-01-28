@@ -47,3 +47,29 @@
 ## 其他
 - 大部分的動作都有休息時間（延遲）
 - 遊戲勝利條件為：同時擊敗所有 BOSS？？？？？？？？？？？
+
+# API
+
+## Action
+- move(dir)
+- atk()
+- collect()
+- build()
+- sleep()
+- upgrade(equip)
+- carry()
+- trade(res)
+- hello()
+
+## Query
+- game()
+- quest()
+- storage()
+- self()
+- roles()
+- monsters()
+- resources()
+- buildings()
+
+## ?
+- tip()
