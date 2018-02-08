@@ -561,7 +561,9 @@ export default class GameService extends Event {
                 let qty = exist + gen > max ? max - exist : gen;
                 qty = Math.min(qty, ap.length);
                 for (let i = 0; i < qty; i++) {
-                    this.newResource(c, this.random(ap));
+                    let p = this.random(ap);
+                    ap.splice(ap.indexOf(p), 1)
+                    this.newResource(c, p);
                 }
 
                 // Timer
