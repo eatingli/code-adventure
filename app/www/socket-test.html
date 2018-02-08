@@ -10,27 +10,119 @@
 </head>
 
 <body>
+    <div id="roles"></div>
+    <div id="resources"></div>
+    <div id="monsters"></div>
     <script>
+        const ServerEvent = {
+            GET_DATA: 'GET_DATA',
+            /* System */
+            GEN_RESOURCE: 'GEN_RESOURCE',
+            GEN_MONSTER: 'GEN_MONSTER',
+            PROFIT_MONEY: 'PROFIT_MONEY',
+            PROFIT_RESOURCE: 'PROFIT_RESOURCE',
+            NEW_QUEST: 'NEW_QUEST',
+            /* Role */
+            ROLE_MOVE: 'ROLE_MOVE',
+            ROLE_ATK: 'ROLE_ATK',
+            ROLE_COLLECT: 'ROLE_COLLECT',
+            ROLE_BUILD: 'ROLE_BUILD',
+            ROLE_SLEEP: 'ROLE_SLEEP',
+            ROLE_UPGRADE: 'ROLE_UPGRADE',
+            ROLE_CARRY: 'ROLE_CARRY',
+            ROLE_TRADE: 'ROLE_TRADE',
+            ROLE_HELLO: 'ROLE_HELLO',
+            ROLE_FORBID: 'ROLE_FORBID',
+        }
         var socket = io();
 
-
-        setInterval(() => {
-            // socket.emit('test', 'hello')
-            socket.once('GET_DATA', (data) => {
-                console.log('data:', data)
+        let loop = () => {
+            socket.once(ServerEvent.GET_DATA, (data) => {
+                // console.log(ServerEvent.GET_DATA, data)
+                let { roles, resources, monsters, buildings, storage, quest } = JSON.parse(data);
+                document.getElementById("roles").innerHTML = roles.map((r) => `<li>${JSON.stringify(r)}</li>`)
+                document.getElementById("resources").innerHTML = resources.map((r) => `<li>${JSON.stringify(r)}</li>`)
+                document.getElementById("monsters").innerHTML = monsters.map((m) => `<li>${JSON.stringify(m)}</li>`)
+                console.timeEnd('s')
+                setTimeout(loop, 10);
             })
-            socket.emit('GET_DATA');
-        }, 50)
-        socket.on('INIT', function (msg) {
-            console.log('INIT', msg)
+            console.time('s')
+            socket.emit(ServerEvent.GET_DATA);
+        }
+        // loop()
+        socket.on(ServerEvent.GEN_RESOURCE, function (data) {
+            let { resource } = JSON.parse(data);
+            console.log(ServerEvent.GEN_RESOURCE, resource)
         });
 
-        socket.on('GEN_MONSTER', function (msg) {
-            console.log('GEN_MONSTER', msg)
+        socket.on(ServerEvent.GEN_MONSTER, function (data) {
+            let { monster } = JSON.parse(data);
+            console.log(ServerEvent.GEN_MONSTER, monster)
         });
 
-        socket.on('GEN_RESOURCE', function (msg) {
-            console.log('GEN_RESOURCE', msg)
+        socket.on(ServerEvent.PROFIT_MONEY, function (data) {
+            let { roles } = JSON.parse(data);
+            console.log(ServerEvent.PROFIT_MONEY, roles)
+        });
+
+        socket.on(ServerEvent.PROFIT_RESOURCE, function (data) {
+            let { storage } = JSON.parse(data);
+            console.log(ServerEvent.PROFIT_RESOURCE, storage)
+        });
+
+        socket.on(ServerEvent.NEW_QUEST, function (data) {
+            let { quest } = JSON.parse(data);
+            console.log(ServerEvent.NEW_QUEST, quest)
+        });
+
+        socket.on(ServerEvent.ROLE_MOVE, function (data) {
+            let { role } = JSON.parse(data);
+            // console.log(ServerEvent.ROLE_MOVE, role)
+        });
+
+        socket.on(ServerEvent.ROLE_ATK, function (data) {
+            let { role, monster } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_ATK, role, monster)
+        });
+
+        socket.on(ServerEvent.ROLE_COLLECT, function (data) {
+            let { role, resource } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_COLLECT, role, resource)
+        });
+
+        socket.on(ServerEvent.ROLE_BUILD, function (data) {
+            let { role, building } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_BUILD, role, building)
+        });
+
+        socket.on(ServerEvent.ROLE_SLEEP, function (data) {
+            let { role } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_SLEEP, role)
+        });
+
+        socket.on(ServerEvent.ROLE_UPGRADE, function (data) {
+            let { role } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_UPGRADE, role)
+        });
+
+        socket.on(ServerEvent.ROLE_CARRY, function (data) {
+            let { role } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_CARRY, role)
+        });
+
+        socket.on(ServerEvent.ROLE_TRADE, function (data) {
+            let { role } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_TRADE, role)
+        });
+
+        socket.on(ServerEvent.ROLE_HELLO, function (data) {
+            let { role } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_HELLO, role)
+        });
+
+        socket.on(ServerEvent.ROLE_FORBID, function (data) {
+            let { role } = JSON.parse(data);
+            console.log(ServerEvent.ROLE_FORBID, role)
         });
     </script>
 </body>

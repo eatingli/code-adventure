@@ -91,6 +91,9 @@ export enum Event {
     ROLE_TRADE = 'ROLE_TRADE',
     ROLE_HELLO = 'ROLE_HELLO',
     ROLE_FORBID = 'ROLE_FORBID',
+
+    R2_GROW = 'R2_GROW',
+    MONSTER_CURE = 'MONSTER_CURE',
 }
 
 /**
@@ -102,11 +105,11 @@ export class Role {
     static MAX_MONEY = 999;
 
     static MAX_EXP(level: number): number {
-        return Math.round(0.012 * level ^ 3 + 0.11 * level ^ 2 + 0.01 * level + 3)
+        return Math.round(0.012 * Math.pow(level, 3) + 0.11 * Math.pow(level, 2) + 0.01 * level + 3)
     }
 
     static MAX_LIFE(level: number): number {
-        return Math.round(0.015 * level ^ 2 + 0.9 * level + 3) + Math.floor(level / 10) * 2
+        return Math.round(0.015 * Math.pow(level, 2) + 0.9 * level + 3) + Math.floor(level / 10) * 2
     }
 
     static MAX_ENERGY(level: number): number {
@@ -115,39 +118,39 @@ export class Role {
 
     /* Delay */
     static DELAY_MOVE(equipLv: number): number {
-        return (6 - equipLv) * 100; //
+        return (6 - equipLv) * 1; //
     }
 
     static DELAY_ATK(equipLv: number): number {
-        return (6 - equipLv) * 100; //
+        return (6 - equipLv) * 1; //
     }
 
     static DELAY_SLEEP(equipLv: number): number {
-        return (6 - equipLv) * 100; //
+        return (6 - equipLv) * 1; //
     }
 
     static DELAY_COLLECT(equipLv: number): number {
-        return (6 - equipLv) * 100; //
+        return (6 - equipLv) * 1; //
     }
 
     static DELAY_BUILD(equipLv: number): number {
-        return (6 - equipLv) * 100; //
+        return (6 - equipLv) * 1; //
     }
 
-    static DELAY_UPGRADE = 1000;
-    static DELAY_CARRY = 600;
-    static DELAY_TRADE = 1000;
-    static DELAY_HELLO = 300;
+    static DELAY_UPGRADE = 10;
+    static DELAY_CARRY = 6;
+    static DELAY_TRADE = 10;
+    static DELAY_HELLO = 3;
 
     /* Equip */
     static MAX_EQUIP_LEVEL = 5;
     static UPGRADE_COST(equip: Equips, level: number) {
         switch (equip) {
             case Equips.E1: return level * 10
-            case Equips.E2: return 90 * level * 10
-            case Equips.E3: return 90 * level * 10
-            case Equips.E4: return 90 * level * 10
-            case Equips.E5: return 10 * level * 10
+            case Equips.E2: return level * 10
+            case Equips.E3: return level * 10
+            case Equips.E4: return level * 10
+            case Equips.E5: return level * 10
             default: throw new Error('Class Error: ' + equip);
         }
     }
@@ -175,13 +178,14 @@ export class Resource {
             case Resources.R2_0:
             case Resources.R2_1:
             case Resources.R2_2: return new Area([new Rect(21, 11, 5, 6)], [])
-            case Resources.R3: return new Area([new Rect(1, 0, 6, 5)], [])
+            case Resources.R3: return new Area([new Rect(1, 0, 6, 5)], [new Rect(1, 1, 3, 3)])
             case Resources.R4: return new Area([new Rect(10, 11, 5, 7)], [])
             case Resources.R5: return new Area([new Rect(14, 6, 5, 5)], [])
             default: throw new Error('Class Error: ' + c);
         }
     }
 
+    static R2_GROW_PERIOD: number = 90 * 1000;
     static GEN_PERIOD(c: Resources): number {
         switch (c) {
             case Resources.R1: return 12 * 1000
@@ -270,34 +274,6 @@ export class Resource {
  */
 export class Monster {
 
-    // static M1 = {
-    //     GEN_AREA: new Area([new Rect(1, 6, 6, 4)], []),
-    //     GEN_PERIOD: 2 * 1000,
-    //     GEN_MAX: 10,
-    //     MAX_LIFE: 3,
-    // }
-
-    // static M2 = {
-    //     GEN_AREA: new Area([new Rect(8, 6, 5, 4)], []),
-    //     GEN_PERIOD: 2.5 * 1000,
-    //     GEN_MAX: 9,
-    //     MAX_LIFE: 4,
-    // }
-
-    // static M3 = {
-    //     GEN_AREA: new Area([new Rect(16, 12, 4, 5)], []),
-    //     GEN_PERIOD: 3.0 * 1000,
-    //     GEN_MAX: 8,
-    //     MAX_LIFE: 3,
-    // }
-
-    // static M4 = {
-    //     GEN_AREA: new Area([new Rect(8, 0, 5, 5)], []),
-    //     GEN_PERIOD: 3.5 * 1000,
-    //     GEN_MAX: 8,
-    //     MAX_LIFE: 4,
-    // }
-
     static GEN_PERIOD(c: Monsters): number {
         switch (c) {
             case Monsters.M1: return 2.0 * 1000;
@@ -373,7 +349,7 @@ export class Monster {
         }
     }
 
-    static Money(c: Monsters): number {
+    static MONEY(c: Monsters): number {
         switch (c) {
             case Monsters.M1: return 1;
             case Monsters.M2: return 2;
@@ -384,6 +360,15 @@ export class Monster {
             case Monsters.M7: return 7;
             case Monsters.M8: return 8;
             case Monsters.M9: return 9;
+            default: throw new Error('Class Error: ' + c);
+        }
+    }
+
+    static CURE_PERIOD(c: Monsters): number {
+        switch (c) {
+            case Monsters.M7: return 2000;
+            case Monsters.M8: return 2000;
+            case Monsters.M9: return 2000;
             default: throw new Error('Class Error: ' + c);
         }
     }

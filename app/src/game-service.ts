@@ -34,11 +34,13 @@ class Role {
      */
     public addExp(exp: number) {
         if (this.level < Config.Role.MAX_LEVEL) {
-            let sum = this.exp + exp;
+            let sum = Math.floor(this.exp + exp);
             let max = Config.Role.MAX_EXP(this.level);
-            if (sum > max) {
+
+            if (sum >= max) {
                 this.level++;
-                this.exp = sum - max;
+                this.exp = 0;
+                this.addExp(sum - max);
             } else {
                 this.exp = sum
             }
@@ -50,11 +52,12 @@ class Role {
      * 檢查：金錢上線
      */
     public addMoney(money: number) {
-        let sum = this.money + money;
+        let sum = Math.floor(this.money + money);
         let max = Config.Role.MAX_MONEY;
         this.money = Math.min(sum, max);
     }
 }
+
 class Resource {
     id: number;
     c: Config.Resources;
@@ -135,7 +138,9 @@ export default class GameService extends Event {
     /* Timer */
     private seasonTimer: number = Date.now();
     private monsterTimer: Map<Config.Monsters, number> = new Map();
+    private monsterCureTimer: Map<Config.Monsters, number> = new Map();
     private resourceTimer: Map<Config.Resources, number> = new Map();
+    private r2GrowTimer: number = Date.now();
     private newQuestTimer: number = Date.now();
     private profitMoneyTimer: number = Date.now();
     private profitResourceTimer: number = Date.now();
@@ -146,11 +151,36 @@ export default class GameService extends Event {
 
     public getData() {
         return {
-            roles: this.roles,
-            resources: this.resources,
-            monsters: this.monsters,
-            buildings: this.buildings,
-            storage: this.storage,
+            roles: this.roles.map((r) => ({
+                ...r,
+                x: r.p.x,
+                y: r.p.y,
+                maxLife: Config.Role.MAX_LIFE(r.level),
+                maxEnergy: Config.Role.MAX_ENERGY(r.level),
+                maxExp: Config.Role.MAX_EXP(r.level),
+            })),
+            resources: this.resources.map((r) => ({
+                ...r,
+                x: r.p.x,
+                y: r.p.y,
+            })),
+            monsters: this.monsters.map((m) => ({
+                ...m,
+                x: m.p.x,
+                y: m.p.y,
+                maxLife: Config.Monster.MAX_LIFE(m.c),
+            })),
+            buildings: this.buildings.map((b) => ({
+                ...b,
+                x: b.p.x,
+                y: b.p.y,
+                maxExp: Config.Building.MAX_EXP(b.c, b.level),
+            })),
+            storage: {
+                iron: this.storage.get(Config.Storages.IRON),
+                wood: this.storage.get(Config.Storages.WOOD),
+                food: this.storage.get(Config.Storages.FOOD),
+            },
             quest: this.quest,
         }
     }
@@ -197,7 +227,7 @@ export default class GameService extends Event {
         let free = now > role.rest;
         let newP = role.p.move(dx, dy);
         let inWorld =
-            (dx == 0 || dy == 0) && (dx + dy == 1) &&
+            (dx == 0 || dy == 0) && (Math.abs(dx + dy) == 1) &&
             (newP.x >= 0 && newP.x < Config.Game.WORLD_WIDTH) &&
             (newP.y >= 0 && newP.y < Config.Game.WORLD_HEIGHT);
 
@@ -208,9 +238,9 @@ export default class GameService extends Event {
             let equip = role.equip[Config.Equips.E4];
             role.rest = now + Config.Role.DELAY_MOVE(equip);
 
-            this.emit(Config.Event.ROLE_MOVE, id);
+            this.emit(Config.Event.ROLE_MOVE, role);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -242,19 +272,19 @@ export default class GameService extends Event {
                 let sumExp = exp * Config.Role.EXP_RATE(buildingLv)
                 role.addExp(sumExp);
                 // Money (+Quest)
-                let money = Config.Monster.Money(mon.c);
-                let quest = (this.quest.target == mon.c) ? Config.Game.QUEST_MONEY : 0;
+                let money = Config.Monster.MONEY(mon.c);
+                let questMoney = (this.quest.target == mon.c) ? Config.Game.QUEST_MONEY : 0;
                 buildingLv = this.getBuilding(Config.Buildings.B1).level;
-                let sumMoney = (money + quest) * Config.Role.MONEY_RATE(buildingLv)
+                let sumMoney = (money + questMoney) * Config.Role.MONEY_RATE(buildingLv)
                 role.addMoney(sumMoney);
                 // Remove
                 let index = this.monsters.indexOf(mon);
                 this.monsters.splice(index, 1);
             }
 
-            this.emit(Config.Event.ROLE_ATK, id, mon.id);
+            this.emit(Config.Event.ROLE_ATK, role, mon);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -284,20 +314,22 @@ export default class GameService extends Event {
                 let addition = Config.Resource.R3_ADDITION(buildingLv);
                 qty += addition;
             }
-            let sum = Math.min(this.storage.get(type), Config.Resource.STORAGE_MAX);
+            let sum = Math.min(this.storage.get(type) + qty, Config.Resource.STORAGE_MAX);
             this.storage.set(type, sum);
             // Quest
-            let quest = (this.quest.target == res.c) ? Config.Game.QUEST_MONEY : 0;
-            let buildingLv = this.getBuilding(Config.Buildings.B1).level;
-            let sumMoney = quest * Config.Role.MONEY_RATE(buildingLv)
-            role.addMoney(sumMoney);
+            if (this.quest.target == res.c) {
+                let questMoney = Config.Game.QUEST_MONEY;
+                let buildingLv = this.getBuilding(Config.Buildings.B1).level;
+                let sumMoney = questMoney * Config.Role.MONEY_RATE(buildingLv)
+                role.addMoney(sumMoney);
+            }
             // Remove
             let index = this.resources.indexOf(res);
             this.resources.splice(index, 1);
 
-            this.emit(Config.Event.ROLE_COLLECT, id, res.id);
+            this.emit(Config.Event.ROLE_COLLECT, role, res);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -328,9 +360,9 @@ export default class GameService extends Event {
                 building.exp = 0;
             }
 
-            this.emit(Config.Event.ROLE_BUILD, id, building.id);
+            this.emit(Config.Event.ROLE_BUILD, role, building);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -354,9 +386,9 @@ export default class GameService extends Event {
             let equip = role.equip[Config.Equips.E5];
             role.rest = now + Config.Role.DELAY_SLEEP(equip);
 
-            this.emit(Config.Event.ROLE_SLEEP, id);
+            this.emit(Config.Event.ROLE_SLEEP, role);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -374,7 +406,7 @@ export default class GameService extends Event {
         let enough = role.money >= cost;
         let building = this.getBuilding(Config.Buildings.B3);
         let inRange = role.p.squareDistance(building.p) <= Config.Building.RANGE;
-
+        if (!role.p.same(new Point(5, 16))) console.log('roleUpgrade:', role.p)
         if (inRange && available && enough && free) {
             // Money
             role.money -= cost;
@@ -383,9 +415,9 @@ export default class GameService extends Event {
             // Delay
             role.rest = now + Config.Role.DELAY_UPGRADE;
 
-            this.emit(Config.Event.ROLE_UPGRADE, id);
+            this.emit(Config.Event.ROLE_UPGRADE, role);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -411,9 +443,9 @@ export default class GameService extends Event {
             //Delay
             role.rest = now + Config.Role.DELAY_CARRY;
 
-            this.emit(Config.Event.ROLE_CARRY, id);
+            this.emit(Config.Event.ROLE_CARRY, role);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -441,9 +473,9 @@ export default class GameService extends Event {
             // Delay
             role.rest = now + Config.Role.DELAY_TRADE;
 
-            this.emit(Config.Event.ROLE_TRADE, id);
+            this.emit(Config.Event.ROLE_TRADE, role);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -452,7 +484,7 @@ export default class GameService extends Event {
      * 檢查：Rest
      * 影響：Rest
      */
-    public roleHello(id: number, stor: Config.Storages) {
+    public roleHello(id: number) {
         let now = Date.now();
         let role = this.roles[id];
         let free = now > role.rest;
@@ -461,9 +493,9 @@ export default class GameService extends Event {
             // Delay
             role.rest = now + Config.Role.DELAY_HELLO;
 
-            this.emit(Config.Event.ROLE_HELLO, id);
+            this.emit(Config.Event.ROLE_HELLO, role);
         } else {
-            this.emit(Config.Event.ROLE_FORBID, id);
+            this.emit(Config.Event.ROLE_FORBID, role);
         }
     }
 
@@ -474,7 +506,7 @@ export default class GameService extends Event {
         let id = this.resourceIdCounter++;
         let r = new Resource(id, c, p);
         this.resources.push(r);
-        
+
         // let time = Date.now() - this.startTime;
         // let qty = this.resources.filter((r) => r.c === c).length;
         // console.log(`New Res: ${c} (${p.x}, ${p.y}) ${time} ${qty}`)
@@ -512,8 +544,14 @@ export default class GameService extends Event {
                 let area = Config.Resource.GEN_AREA(c);
                 let gen = Config.Resource.GEN_QTY(c);
                 let max = Config.Resource.GEN_MAX(c);
-                let exist = this.resources.filter((r2) => r2.c === c).length;
+                let exist = this.resources.filter((r) => r.c === c).length;
                 let ap = this.availablePoint(area);
+
+                // R2 的數量需加總全部樹木
+                if (c === Config.Resources.R2_0) {
+                    let allR2 = this.resources.filter((r) => r.c === Config.Resources.R2_1 || r.c === Config.Resources.R2_2);
+                    exist += allR2.length;
+                }
 
                 // R4 少於產量則補到產量，否則倍數生產
                 if (c === Config.Resources.R4)
@@ -529,6 +567,31 @@ export default class GameService extends Event {
                 // Timer
                 this.resourceTimer.set(c, timer + period);
             }
+        }
+    }
+
+    /**
+     * R2 週期性成長
+     */
+    private r2Grow(now: number) {
+        let timer = this.r2GrowTimer;
+        let diffTime = now - timer;
+        let period = Config.Resource.R2_GROW_PERIOD;
+
+        if (diffTime >= period) {
+
+            for (let res of this.resources) {
+                switch (res.c) {
+                    case Config.Resources.R2_0:
+                        res.c = Config.Resources.R2_1;
+                        break;
+                    case Config.Resources.R2_1:
+                        res.c = Config.Resources.R2_2
+                        break;
+                }
+            }
+            this.emit(Config.Event.R2_GROW);
+            this.r2GrowTimer = timer + period;
         }
     }
 
@@ -562,6 +625,61 @@ export default class GameService extends Event {
     }
 
     /**
+     * 產生Boss
+     * Boss Timer 的-1代表未開始計時
+     */
+    private genBoss(now: number) {
+        let bossClasses: Array<Config.Monsters> = [
+            Config.Monsters.M7, Config.Monsters.M8, Config.Monsters.M9,
+        ]
+        for (let c of bossClasses) {
+            if (this.monsters.findIndex((m) => m.c == c) > -1) continue;
+            let timer = this.monsterTimer.get(c);
+            let period = Config.Monster.GEN_PERIOD(c);
+            if (timer < 0) {
+                timer = now + period;
+                this.monsterTimer.set(c, timer);
+            }
+            let diffTime = now - timer;
+            let area = Config.Monster.GEN_AREA(c);
+            let maxLife = Config.Monster.MAX_LIFE(c);
+
+            if (diffTime >= period) {
+                let ap = this.availablePoint(area);
+                if (ap.length < 1) {
+                    throw new Error('Boss Gen Error');
+                }
+                let p = this.random(ap);
+                this.newMonster(c, p, maxLife);
+                this.monsterTimer.set(c, -1);
+            }
+        }
+    }
+
+    /**
+     * 怪物恢復生命 (Boss)
+     */
+    private monsterCure(now: number) {
+        let bossClasses: Array<Config.Monsters> = [
+            Config.Monsters.M7, Config.Monsters.M8, Config.Monsters.M9,
+        ]
+        for (let c of bossClasses) {
+            let timer = this.monsterCureTimer.get(c);
+            let period = Config.Monster.CURE_PERIOD(c);
+            let diffTime = now - timer;
+            let maxLife = Config.Monster.MAX_LIFE(c);
+
+            if (diffTime >= period) {
+                let boss = this.monsters.find((m) => m.c == c);
+                if (boss && boss.life < maxLife) {
+                    boss.life += 1;
+                    this.emit(Config.Event.MONSTER_CURE);
+                }
+                this.monsterCureTimer.set(c, timer + period);
+            }
+        }
+    }
+    /**
      * 週期新任務
      */
     private newQuest(now: number) {
@@ -572,8 +690,9 @@ export default class GameService extends Event {
 
             let nq = this.random([].concat(Config.Game.QUEST_MONSTERS, Config.Game.QUEST_RESOURCES))
             this.quest.target = nq;
-            this.emit(Config.Event.NEW_QUEST, nq);
             this.newQuestTimer = this.newQuestTimer + period;
+
+            this.emit(Config.Event.NEW_QUEST, this.quest);
         }
     }
 
@@ -588,10 +707,10 @@ export default class GameService extends Event {
             let buildingLv = this.getBuilding(Config.Buildings.B4).level;
             let profit = Config.Game.PROFIT_MONEY_QTY(buildingLv)
             for (let role of this.roles) {
-                role.money += profit;
+                role.addMoney(profit);
             }
-            this.emit(Config.Event.PROFIT_MONEY);
             this.profitMoneyTimer = now + period;
+            this.emit(Config.Event.PROFIT_MONEY);
         }
 
         // Resource
@@ -602,21 +721,37 @@ export default class GameService extends Event {
             let profit = Config.Game.PROFIT_RESOURCE_QTY(buildingLv)
 
             let r = [Config.Storages.IRON, Config.Storages.WOOD, Config.Storages.FOOD]
+            let max = Config.Resource.STORAGE_MAX;
             for (let i = 0; i < profit; i++) {
                 let mask = Math.floor(Math.random() * r.length);
                 let value = this.storage.get(r[mask]);
-                this.storage.set(r[mask], value + 1)
+                if (value < max)
+                    this.storage.set(r[mask], value + 1)
             }
-            this.emit(Config.Event.PROFIT_RESOURCE);
             this.profitResourceTimer = now + period;
+            this.emit(Config.Event.PROFIT_RESOURCE);
         }
+
+    }
+
+    /**
+     * 
+     */
+    public save() {
+
+    }
+
+    /**
+     * 
+     */
+    public load() {
 
     }
 
     /**
      * 遊戲初始化
      */
-    init() {
+    private init() {
 
         /* Storage */
         let storages = [Config.Storages.IRON, Config.Storages.WOOD, Config.Storages.FOOD]
@@ -631,6 +766,15 @@ export default class GameService extends Event {
         ]
         for (let c of monsterClasses) {
             this.monsterTimer.set(c, Date.now())
+        }
+        let bossClasses: Array<Config.Monsters> = [
+            Config.Monsters.M7, Config.Monsters.M8, Config.Monsters.M9,
+        ]
+        for (let c of bossClasses) {
+            // Gen Timer
+            this.monsterTimer.set(c, -1)
+            // Cure Timer
+            this.monsterCureTimer.set(c, Date.now())
         }
 
         /* Resouece Timer */
@@ -664,11 +808,14 @@ export default class GameService extends Event {
     /**
      * 遊戲主迴圈
      */
-    loop() {
+    private loop() {
         /* 週期執行 */
         let nowTime = Date.now();
+        this.r2Grow(nowTime);
         this.genResource(nowTime);
         this.genMonster(nowTime);
+        this.genBoss(nowTime);
+        this.monsterCure(nowTime);
         this.newQuest(nowTime);
         this.genProfit(nowTime);
     }
@@ -676,8 +823,8 @@ export default class GameService extends Event {
     /**
      * 啟動遊戲
      */
-    start() {
+    public start() {
         this.init();
-        setInterval(this.loop.bind(this), 2);
+        setInterval(this.loop.bind(this), 10);
     }
 }

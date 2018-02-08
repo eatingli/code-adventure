@@ -6,6 +6,7 @@ import * as socketio from 'socket.io'
 import * as Game from './game.js'
 import * as Config from './game-config'
 import GameService from './game-service.js'
+import GameTester from './game-tester.js';
 
 const app = express();
 const httpServer = new http.Server(app);
@@ -17,66 +18,136 @@ app.use(express.static(www));
 let gameService = new GameService()
 gameService.start();
 
-gameService.on(Config.Event.GEN_RESOURCE, (r) => {
-    // console.log('GEN_RESOURCE', r);
-    let data = {
-        role: r,
-    }
+/**
+ * ---------------------------------- System Event ---------------------------------- 
+ */
+gameService.on(Config.Event.GEN_RESOURCE, (resource) => {
+    // console.log(Config.Event.GEN_RESOURCE);
+    let data = { resource: resource, data: gameService.getData() }
     io.emit(Config.Event.GEN_RESOURCE, JSON.stringify(data))
 })
 
-gameService.on(Config.Event.GEN_MONSTER, (m) => {
-    // console.log('GEN_MONSTER', m);
-    let data = {
-        monster: m
-    }
+gameService.on(Config.Event.GEN_MONSTER, (monster) => {
+    // console.log(Config.Event.GEN_MONSTER);
+    let data = { monster: monster, data: gameService.getData() }
     io.emit(Config.Event.GEN_MONSTER, JSON.stringify(data))
 })
 
 gameService.on(Config.Event.PROFIT_MONEY, () => {
-    let moneys = gameService.getData().roles.map((r) => r.money)
-    console.log('PROFIT_MONEY', moneys);
+    // console.log(Config.Event.PROFIT_MONEY);
+    let data = { data: gameService.getData() }
+    io.emit(Config.Event.PROFIT_MONEY, JSON.stringify(data));
 })
 
 gameService.on(Config.Event.PROFIT_RESOURCE, () => {
-    let storage = gameService.getData().storage
-    let iron = storage.get(Config.Storages.IRON)
-    let wood = storage.get(Config.Storages.WOOD)
-    let food = storage.get(Config.Storages.FOOD)
-
-    console.log('PROFIT_RESOURCE', iron, wood, food);
+    // console.log(Config.Event.PROFIT_RESOURCE);
+    let data = { data: gameService.getData() }
+    io.emit(Config.Event.PROFIT_RESOURCE, JSON.stringify(data));
 })
 
-gameService.on(Config.Event.NEW_QUEST, (nq) => {
-    console.log('NEW_QUEST', nq);
+gameService.on(Config.Event.NEW_QUEST, (quest) => {
+    // console.log(Config.Event.NEW_QUEST);
+    let data = { data: gameService.getData() }
+    io.emit(Config.Event.NEW_QUEST, JSON.stringify(data));
 })
 
+/**
+ * ---------------------------------- Player Event ---------------------------------- 
+ */
+gameService.on(Config.Event.ROLE_MOVE, (role) => {
+    // console.log(Config.Event.ROLE_MOVE);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_MOVE, JSON.stringify(data));
+})
 
+gameService.on(Config.Event.ROLE_ATK, (role, monster) => {
+    // console.log(Config.Event.ROLE_ATK);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_ATK, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_COLLECT, (role, resource) => {
+    // console.log(Config.Event.ROLE_COLLECT);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_COLLECT, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_BUILD, (role, building) => {
+    // console.log(Config.Event.ROLE_BUILD);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_BUILD, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_SLEEP, (role) => {
+    // console.log(Config.Event.ROLE_SLEEP);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_SLEEP, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_UPGRADE, (role) => {
+    // console.log(Config.Event.ROLE_UPGRADE);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_UPGRADE, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_CARRY, (role) => {
+    // console.log(Config.Event.ROLE_CARRY);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_CARRY, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_TRADE, (role) => {
+    // console.log(Config.Event.ROLE_TRADE);
+    let data = { role: role, data: gameService.getData() }
+    io.emit(Config.Event.ROLE_TRADE, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_HELLO, (role) => {
+    // console.log(Config.Event.ROLE_HELLO);
+    let data = { role: role }
+    io.emit(Config.Event.ROLE_HELLO, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.ROLE_FORBID, (role) => {
+    // console.log(Config.Event.ROLE_FORBID);
+    let data = { role: role }
+    io.emit(Config.Event.ROLE_FORBID, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.R2_GROW, () => {
+    let data = { data: gameService.getData() }
+    io.emit(Config.Event.R2_GROW, JSON.stringify(data));
+})
+
+gameService.on(Config.Event.MONSTER_CURE, () => {
+    let data = { data: gameService.getData() }
+    io.emit(Config.Event.MONSTER_CURE, JSON.stringify(data));
+})
+
+/**
+ * -------------------------------------- Server -------------------------------------- 
+ */
 io.on('connection', (socket) => {
     console.log('A user connected');
-    // let data = { data: gameService.getData() }
-    // socket.emit('INIT', JSON.stringify(data))
 
     socket.on('disconnect', function () {
         console.log('user disconnected');
     });
 
-    socket.on('test', function (msg: string) {
-        // console.log(msg)
-        // io.emit('test', msg)
-    })
-
-    socket.on('GET_DATA', () => {
-        let data = gameService.getData();
-        socket.emit('GET_DATA', JSON.stringify(data))
-    })
-
+    let data = { data: gameService.getData() };
+    socket.emit('GET_DATA', JSON.stringify(data))
 
 });
-
-
-
 
 httpServer.listen(3000, function () {
     console.log('Server listening on port 3000!');
 });
+
+
+/**
+ * -------------------------------------- Test -------------------------------------- 
+ */
+(async () => {
+    let tester = new GameTester(gameService);
+    tester.start();
+})();
